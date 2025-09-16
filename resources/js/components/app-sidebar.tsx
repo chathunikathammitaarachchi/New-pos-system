@@ -5,20 +5,40 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Database, Code } from 'lucide-react'; // Added Code icon
 import AppLogo from './app-logo';
-
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Itemmaster',
+        href: '/itemmaster',
+        icon: Database,
+    },
+    {
+        title: 'Code Master',
+        href: '/code-master',
+        icon: Code,
+    },
+    {
+        title: 'Customer Registration',
+        href: '/register/customer',
+        icon: Database,
+    },
+    {
+        title: 'Supplier Registration',
+        href: '/register/supplier',
+        icon: Database,
+    },
 ];
+
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Repository',
+        title: 'Hellow',
         href: 'https://github.com/laravel/react-starter-kit',
         icon: Folder,
     },

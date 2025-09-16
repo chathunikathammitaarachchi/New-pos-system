@@ -40,3 +40,14 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+// resources/js/types/index.ts or @/types
+
+export interface PageProps {
+  auth?: {
+    user?: {
+      id: number;
+      name: string;
+      email: string;
+    };
+  };
+}
