@@ -51,4 +51,7 @@ class AccMas extends Model
     {
         return $this->hasMany(AccTrn::class, 'accKy', 'accKy');
     }
+
+
+    
 }
