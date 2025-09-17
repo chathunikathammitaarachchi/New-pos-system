@@ -49,4 +49,8 @@ class Address extends Model
     {
         return $this->belongsTo(AccMas::class, 'accKy', 'accKy');
     }
+
+
+
+    
 }
