@@ -1,8 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+
 use App\Http\Controllers\ItemmasterController;
 use App\Http\Controllers\CodeMasterController;
+use App\Http\Controllers\AccountController;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -44,5 +47,18 @@ Route::prefix('api')->middleware('api')->group(function () {
     Route::get('/units', [ItemmasterController::class, 'getUnits']);
 });
 
+
+// Your existing page routes
+Route::get('/customer-form', function () {
+    return Inertia::render('CustomerForm');
+});
+
+Route::get('/supplier-form', function () {
+    return Inertia::render('SupplierForm');
+});
+
+// Add form submission routes
+Route::post('/customers', [AccountController::class, 'storeCustomer']);
+Route::post('/suppliers', [AccountController::class, 'storeSupplier']);
 require __DIR__.'/auth.php';
 require __DIR__.'/settings.php';
