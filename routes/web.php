@@ -27,7 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Itemmaster search route (outside auth for now - adjust as needed)
 Route::get('/itemmaster/search', [ItemmasterController::class, 'search']);
-
+Route::get('/api/suppliers/{type?}', [ItemmasterController::class, 'getSuppliers']);
 // API Routes - Consolidated and properly structured
 Route::prefix('api')->middleware('api')->group(function () {
     // Code Master API routes
@@ -60,5 +60,18 @@ Route::get('/supplier-form', function () {
 // Add form submission routes
 Route::post('/customers', [AccountController::class, 'storeCustomer']);
 Route::post('/suppliers', [AccountController::class, 'storeSupplier']);
+
+
+
+
+// API routes for supplier management
+Route::get('/api/suppliers', [AccountController::class, 'getSuppliers']);
+Route::get('/api/supplier-details/{id}', [AccountController::class, 'getSupplierDetails']);
+Route::get('/api/supplier-search', [AccountController::class, 'searchSupplier']);
+
+// Web routes for supplier management
+Route::get('/supplier', [AccountController::class, 'showSupplierForm']);
+Route::post('/supplier', [AccountController::class, 'storeSupplier']);
+Route::put('/supplier/{id}', [AccountController::class, 'updateSupplier']);
 require __DIR__.'/auth.php';
 require __DIR__.'/settings.php';
