@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(ItemMasterSeeder::class);
-        
+
         // Create ControllerMaster records
         ControllerMaster::create([
             'concode' => 'CTRL001',
@@ -53,6 +53,12 @@ class DatabaseSeeder extends Seeder
                 'password' => bcrypt('password123'),
             ]);
         }
+
+
+
+        $this->call([
+        AccMasSeeder::class,
+    ]);
     }
 
     
