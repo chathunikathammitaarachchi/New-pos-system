@@ -5,7 +5,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Database, Code } from 'lucide-react'; // Added Code icon
+import { BookOpen, Folder, LayoutGrid, Database, Code, Users } from 'lucide-react'; // Added Code icon
 import AppLogo from './app-logo';
 const mainNavItems: NavItem[] = [
     {
@@ -15,7 +15,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Itemmaster',
-        href: '/itemmaster',
+        href: '/itemmaster/create',
         icon: Database,
     },
     {
@@ -23,16 +23,13 @@ const mainNavItems: NavItem[] = [
         href: '/code-master',
         icon: Code,
     },
-    {
-        title: 'Customer Registration',
-        href: '/register/customer',
-        icon: Database,
-    },
-    {
-        title: 'Supplier Registration',
-        href: '/register/supplier',
-        icon: Database,
-    },
+
+      {
+        title: 'Users',
+        href: '/customer-form',
+        icon: Users,
+    }
+
 ];
 
 
