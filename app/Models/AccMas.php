@@ -53,5 +53,9 @@ class AccMas extends Model
     }
 
 
-    
+    // In AccMas model
+public function address()
+{
+    return $this->hasOne(Address::class, 'accKy', 'accKy');
+}
 }
