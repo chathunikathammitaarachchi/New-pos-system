@@ -91,10 +91,12 @@ const Create: React.FC = () => {
   const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([]);
   const [unitOptions, setUnitOptions] = useState<UnitOption[]>([]);
   const [itemCodeOptions, setItemCodeOptions] = useState<ItemCodeOption[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
+        setLoading(true);
         // Common headers for all requests
         const headers: { [key: string]: string } = {
           'Accept': 'application/json',
@@ -122,49 +124,55 @@ const Create: React.FC = () => {
         ] = await Promise.all([
           fetch('/api/items', fetchOptions),
           fetch('/api/item-codes', fetchOptions),
-          fetch('/api/categories', fetchOptions),
+          fetch('/api/categories', fetchOptions).catch(() => ({ ok: false, status: 500 })),
           fetch('/api/suppliers', fetchOptions),
-          fetch('/api/units', fetchOptions)
+          fetch('/api/units', fetchOptions).catch(() => ({ ok: false, status: 500 }))
         ]);
 
         // Check each response
-        const responses = [itemResponse, itemCodeResponse, categoryResponse, supplierResponse, unitResponse];
-        for (const response of responses) {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const contentType = response.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            console.error('Non-JSON response:', text.substring(0, 200));
-            throw new Error('Server returned HTML instead of JSON');
-          }
-        }
+        if (!itemResponse.ok) throw new Error(`Items API error! status: ${itemResponse.status}`);
+        if (!itemCodeResponse.ok) throw new Error(`Item Codes API error! status: ${itemCodeResponse.status}`);
+        if (!supplierResponse.ok) throw new Error(`Suppliers API error! status: ${supplierResponse.status}`);
 
-        // Parse all JSON responses
-        const [itemData, itemCodeData, categoryData, supplierData, unitData] = await Promise.all([
+        // Parse successful JSON responses
+        const [itemData, itemCodeData, supplierData] = await Promise.all([
           itemResponse.json(),
           itemCodeResponse.json(),
-          categoryResponse.json(),
-          supplierResponse.json(),
-          unitResponse.json()
+          supplierResponse.json()
         ]);
 
         setItemOptions(itemData as ItemOption[]);
         setItemCodeOptions(itemCodeData as ItemCodeOption[]);
-        setCategoryOptions(categoryData as CategoryOption[]);
         setSupplierOptions(supplierData as SupplierOption[]);
-        setUnitOptions(unitData as UnitOption[]);
+
+        // Handle category and unit responses separately as they might fail
+        if (categoryResponse.ok) {
+          const categoryData = await categoryResponse.json();
+          setCategoryOptions(categoryData as CategoryOption[]);
+        } else {
+          console.warn('Categories API failed, using empty data');
+          setCategoryOptions([]);
+        }
+
+        if (unitResponse.ok) {
+          const unitData = await unitResponse.json();
+          setUnitOptions(unitData as UnitOption[]);
+        } else {
+          console.warn('Units API failed, using empty data');
+          setUnitOptions([]);
+        }
 
       } catch (error) {
         console.error('Error fetching dropdown data:', error);
         // Check if it's an authentication issue
         if (error instanceof Error && (error.message.includes('HTML') || error.message.includes('DOCTYPE'))) {
           console.error('This appears to be an authentication issue. You might be redirected to a login page.');
-          // Redirect to login or show authentication message
-          // window.location.href = '/login';
+          setMessage('Authentication error. Please log in again.');
+        } else {
+          setMessage('Failed to load dropdown data. Some features may not work properly.');
         }
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -500,6 +508,19 @@ const Create: React.FC = () => {
           </div>
         )}
 
+        {loading && (
+          <div style={{ 
+            marginBottom: 15, 
+            padding: '5px',
+            backgroundColor: '#d1ecf1',
+            border: '1px solid #bee5eb',
+            borderRadius: '3px',
+            fontSize: '11px'
+          }}>
+            Loading dropdown data...
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', gap: '15px' }}>
             {/* Left Column */}
@@ -512,6 +533,7 @@ const Create: React.FC = () => {
                     value={form.ItemCode} 
                     onChange={handleItemCodeSelect}
                     style={{ ...inputStyle, backgroundColor: '#ffff99' }}
+                    disabled={loading}
                   >
                     <option value="">තෝරන්න</option>
                     {itemCodeOptions.map((option) => (
@@ -539,6 +561,7 @@ const Create: React.FC = () => {
                   value={form.ItmNm}
                   onChange={handleItemNameSelect}
                   style={inputStyle}
+                  disabled={loading}
                 >
                   <option value="">තෝරන්න</option>
                   {itemOptions.map((option) => (
@@ -563,8 +586,9 @@ const Create: React.FC = () => {
                   value={form.cdname}
                   onChange={handleChange}
                   style={inputStyle}
+                  disabled={loading || categoryOptions.length === 0}
                 >
-                  <option value="">තෝරන්න</option>
+                  <option value="">{categoryOptions.length === 0 ? 'Loading failed...' : 'තෝරන්න'}</option>
                   {categoryOptions.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.name}
@@ -659,8 +683,9 @@ const Create: React.FC = () => {
                   value={form.UnitKy}
                   onChange={handleChange}
                   style={inputStyle}
+                  disabled={loading || unitOptions.length === 0}
                 >
-                  <option value="">තෝරන්න</option>
+                  <option value="">{unitOptions.length === 0 ? 'Loading failed...' : 'තෝරන්න'}</option>
                   {unitOptions.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.name}
@@ -678,17 +703,18 @@ const Create: React.FC = () => {
                   style={inputStyle}
                 />
 
-                <label style={labelStyle}>සැපයුම්කරු</label>
+                <label style={labelStyle}>සැපයුම්කරු තෝරන්න</label>
                 <select 
                   name="SupKey"
                   value={form.SupKey}
                   onChange={handleChange}
                   style={inputStyle}
+                  disabled={loading}
                 >
                   <option value="">තෝරන්න</option>
-                  {supplierOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name}
+                  {supplierOptions.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name}
                     </option>
                   ))}
                 </select>
