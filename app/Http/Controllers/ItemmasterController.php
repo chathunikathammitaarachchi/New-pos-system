@@ -250,4 +250,17 @@ class ItemmasterController extends Controller
         $itemNames = Itemmaster::select('ItmKy', 'ItmNm', 'ItemCode')->get();
         return response()->json($itemNames);
     }
+
+
+
+// Get suppliers for dropdown (filtered by supplier type)
+public function getSuppliers()
+{
+    $suppliers = DB::table('acc_mas')
+        ->where('accTyp', 'Supplier')
+        ->select('accKy as id', 'accNm as name')
+        ->get();
+    
+    return response()->json($suppliers);
+}
 }
