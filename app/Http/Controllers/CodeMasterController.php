@@ -129,27 +129,42 @@ class CodeMasterController extends Controller
     /**
      * Get categories (where concode is 'ITM_CAT')
      */
-    public function getCategories()
+   public function getCategories()
     {
         try {
             $categories = CodeMaster::where('concode', 'ITM_CAT')
-                ->select('cdcode', 'cdname')
+                ->select('id', 'cdname as name')
                 ->orderBy('cdname')
                 ->get();
             
-            return response()->json([
-                'success' => true,
-                'data' => $categories
-            ]);
+            return response()->json($categories);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
                 'error' => 'Failed to fetch categories',
                 'message' => $e->getMessage()
             ], 500);
         }
     }
 
+    /**
+     * Get units (where concode is 'UNIT' or whatever your unit code is)
+     */
+    public function getUnits()
+    {
+        try {
+            $units = CodeMaster::where('concode', 'UNIT') // Change 'UNIT' to your actual unit code
+                ->select('id', 'cdname as name')
+                ->orderBy('cdname')
+                ->get();
+            
+            return response()->json($units);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch units',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
     /**
      * Generate unique code
      */
@@ -165,4 +180,45 @@ class CodeMasterController extends Controller
 
         return $cdcode;
     }
+
+
+    /**
+ * Get item codes (where concode is for items)
+ */
+/**
+ * Get item codes for dropdown
+ */
+public function getItemCodes()
+{
+    try {
+        $itemCodes = CodeMaster::where('concode', 'ITM_CD') // Adjust this to your actual concode for items
+            ->select('id', 'cdcode as code', 'cdname as name')
+            ->orderBy('cdname')
+            ->get();
+        
+        return response()->json($itemCodes);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Failed to fetch item codes',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
+public function getItemCodesWithCategory()
+{
+    $itemCodes = DB::table('itemmaster as im')
+        ->leftJoin('code_master as cm', 'im.CKey', '=', 'cm.conkey')
+        ->select(
+            'im.ItmKy',
+            'im.ItemCode',
+            'im.ItmNm',
+            'cm.cdname as CategoryName'
+        )
+        ->orderBy('im.ItmNm')
+        ->get();
+
+    return response()->json($itemCodes);
+}
+
 }
