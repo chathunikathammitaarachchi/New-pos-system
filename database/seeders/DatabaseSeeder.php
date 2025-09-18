@@ -5,14 +5,12 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\ControllerMaster;
 use App\Models\CodeMaster;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\UnitCnv;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
+    
     public function run(): void
     {
         $this->call(ItemMasterSeeder::class);
@@ -58,7 +56,15 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
         AccMasSeeder::class,
+        UnitCnvSeeder::class,
+
+
+        
+
+        
     ]);
+
+     
     }
 
     
