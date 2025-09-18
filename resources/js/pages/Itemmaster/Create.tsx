@@ -27,10 +27,11 @@ interface ItemCodeOption {
   id: number;
   code: string;
   name: string;
+  categoryName?: string;
 }
 
 const Create: React.FC = () => {
-  const [form, setForm] = useState({
+  const initialFormState = {
     fInAct: 'false',
     Status: '',
     CKey: '',
@@ -81,8 +82,9 @@ const Create: React.FC = () => {
     DoRound: 'false',
     ProcessRatio: '',
     OrderNo: '',
-  });
+  };
 
+  const [form, setForm] = useState(initialFormState);
   const [searching, setSearching] = useState(false);
   const [message, setMessage] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
@@ -92,85 +94,108 @@ const Create: React.FC = () => {
   const [unitOptions, setUnitOptions] = useState<UnitOption[]>([]);
   const [itemCodeOptions, setItemCodeOptions] = useState<ItemCodeOption[]>([]);
   const [loading, setLoading] = useState(false);
+const handleManualItemCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({
+      ...form,
+      ItemCode: e.target.value
+    });
+  };
+
+
+  // Manual text input
+const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setForm(prev => ({
+    ...prev,
+    ItmNm: e.target.value
+  }));
+};
+
+
 
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
         setLoading(true);
-        // Common headers for all requests
-        const headers: { [key: string]: string } = {
+        
+        const headers: Record<string, string> = {
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         };
 
-        // Add CSRF token if using Laravel (get it from meta tag)
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         if (csrfToken) {
           headers['X-CSRF-TOKEN'] = csrfToken;
         }
 
-        const fetchOptions = {
+        const fetchOptions: RequestInit = {
           headers,
           credentials: 'include' as RequestCredentials,
         };
 
-        // Fetch all data in parallel for better performance
-        const [
-          itemResponse,
-          itemCodeResponse,
-          categoryResponse,
-          supplierResponse,
-          unitResponse
-        ] = await Promise.all([
-          fetch('/api/items', fetchOptions),
-          fetch('/api/item-codes', fetchOptions),
-          fetch('/api/categories', fetchOptions).catch(() => ({ ok: false, status: 500 })),
-          fetch('/api/suppliers', fetchOptions),
-          fetch('/api/units', fetchOptions).catch(() => ({ ok: false, status: 500 }))
-        ]);
+        const endpoints = [
+          { 
+            url: '/api/items', 
+            setter: setItemOptions, 
+            fallback: [] 
+          },
+          { 
+            url: '/api/item-codes-with-category',
+            setter: setItemCodeOptions, 
+            fallback: [] 
+          },
+          { 
+            url: '/api/cd-codes', 
+            setter: setCategoryOptions, 
+            fallback: [] 
+          },
+          { 
+            url: '/api/suppliers', 
+            setter: setSupplierOptions, 
+            fallback: [] 
+          },
+          { 
+            url: '/api/units', 
+            setter: setUnitOptions, 
+            fallback: [] 
+          }
+        ];
 
-        // Check each response
-        if (!itemResponse.ok) throw new Error(`Items API error! status: ${itemResponse.status}`);
-        if (!itemCodeResponse.ok) throw new Error(`Item Codes API error! status: ${itemCodeResponse.status}`);
-        if (!supplierResponse.ok) throw new Error(`Suppliers API error! status: ${supplierResponse.status}`);
+        const fetchPromises = endpoints.map(async ({ url, setter, fallback }) => {
+          try {
+            const response = await fetch(url, fetchOptions);
+            
+            if (!response.ok) {
+              console.warn(`API ${url} failed: ${response.status}`);
+              setter(fallback);
+              return null;
+            }
+            
+            const data = await response.json();
+            
+            // Handle different response formats
+            let safeData;
+            if (Array.isArray(data)) {
+              safeData = data;
+            } else if (Array.isArray(data?.data)) {
+              safeData = data.data;
+            } else {
+              safeData = fallback;
+            }
+            
+            setter(safeData);
+            return safeData;
+          } catch (error) {
+            console.error(`Error fetching ${url}:`, error);
+            setter(fallback);
+            return null;
+          }
+        });
 
-        // Parse successful JSON responses
-        const [itemData, itemCodeData, supplierData] = await Promise.all([
-          itemResponse.json(),
-          itemCodeResponse.json(),
-          supplierResponse.json()
-        ]);
-
-        setItemOptions(itemData as ItemOption[]);
-        setItemCodeOptions(itemCodeData as ItemCodeOption[]);
-        setSupplierOptions(supplierData as SupplierOption[]);
-
-        // Handle category and unit responses separately as they might fail
-        if (categoryResponse.ok) {
-          const categoryData = await categoryResponse.json();
-          setCategoryOptions(categoryData as CategoryOption[]);
-        } else {
-          console.warn('Categories API failed, using empty data');
-          setCategoryOptions([]);
-        }
-
-        if (unitResponse.ok) {
-          const unitData = await unitResponse.json();
-          setUnitOptions(unitData as UnitOption[]);
-        } else {
-          console.warn('Units API failed, using empty data');
-          setUnitOptions([]);
-        }
+        await Promise.all(fetchPromises);
 
       } catch (error) {
-        console.error('Error fetching dropdown data:', error);
-        // Check if it's an authentication issue
-        if (error instanceof Error && (error.message.includes('HTML') || error.message.includes('DOCTYPE'))) {
-          console.error('This appears to be an authentication issue. You might be redirected to a login page.');
-          setMessage('Authentication error. Please log in again.');
-        } else {
-          setMessage('Failed to load dropdown data. Some features may not work properly.');
-        }
+        console.error('Error in fetchDropdownData:', error);
+        setMessage('Failed to load dropdown data. Some features may not work properly.');
       } finally {
         setLoading(false);
       }
@@ -179,7 +204,7 @@ const Create: React.FC = () => {
     fetchDropdownData();
   }, []);
 
-  const handleItemCodeSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+   const handleItemCodeSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedCode = e.target.value;
     
     if (!selectedCode) {
@@ -221,51 +246,66 @@ const Create: React.FC = () => {
     }
   };
 
+
+ // Dropdown selection
   const handleItemNameSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedName = e.target.value;
-    
-    if (!selectedName) {
-      // Clear form if no selection
-      clearForm();
-      return;
-    }
-    
-    try {
-      setSearching(true);
-      setMessage('අයිතමය ලෝඩ් වෙමින්...');
-      
-      // Find the item code from the selected name
-      const selectedItem = itemOptions.find((item) => item.name === selectedName);
-      if (selectedItem && selectedItem.code) {
-        // Fetch item details based on the code
-        const response = await fetch(`/api/item-details/${selectedItem.code}`);
-        const data = await response.json();
-        
-        if (response.ok && data) {
-          const newForm = { ...form };
-          for (const key in form) {
-            if (key in data) {
-              newForm[key as keyof typeof form] = data[key] !== null ? String(data[key]) : '';
-            }
+  const selectedName = e.target.value;
+
+  setForm(prev => ({
+    ...prev,
+    ItmNm: selectedName,  // sync form field
+  }));
+
+  if (!selectedName) {
+    setMessage('');
+    setIsEditMode(false);
+    return;
+  }
+
+  try {
+    setSearching(true);
+    setMessage('අයිතමය ලෝඩ් වෙමින්...');
+
+    const selectedItem = itemOptions.find(item => item.name === selectedName);
+
+    if (selectedItem && selectedItem.code) {
+      const response = await fetch(`/api/item-details/${selectedItem.code}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data) {
+        const newForm = { ...initialFormState };
+
+        for (const key in newForm) {
+          if (key in data && data[key] !== null && data[key] !== undefined) {
+            newForm[key as keyof typeof newForm] = String(data[key]);
           }
-          setForm(newForm);
-          setMessage('අයිතමය සාර්ථකව ලෝඩ් විය.');
-          setIsEditMode(true);
-        } else {
-          setMessage('අයිතමය සොයාගත නොහැක.');
-          setIsEditMode(false);
         }
+
+        setForm(newForm);
+        setMessage('අයිතමය සාර්ථකව ලෝඩ් විය.');
+        setIsEditMode(true);
+      } else {
+        setMessage('අයිතමය සොයාගත නොහැක.');
+        setIsEditMode(false);
       }
-    } catch (error) {
-      console.error(error);
-      if (error instanceof Error) {
-        setMessage('දත්ත ලබා ගැනීමේදී දෝෂයක් සිදුවිය.');
-      }
+    } else {
+      setMessage('අයිතම කේතය සොයාගත නොහැක.');
       setIsEditMode(false);
-    } finally {
-      setSearching(false);
     }
-  };
+  } catch (error) {
+    console.error(error);
+    setMessage('දත්ත ලබා ගැනීමේදී දෝෂයක් සිදුවිය.');
+    setIsEditMode(false);
+  } finally {
+    setSearching(false);
+  }
+};
+
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -286,16 +326,19 @@ const Create: React.FC = () => {
     setMessage('සොයමින්...');
 
     try {
-      // Use whichever field has value for search
       const searchTerm = form.ItemCode || form.ItmNm;
-      const response = await fetch(`/itemmaster/search?search_term=${searchTerm}`);
+      const response = await fetch(`/itemmaster/search?search_term=${encodeURIComponent(searchTerm)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
 
-      if (response.ok && data.item) {
-        const newForm = { ...form };
-        for (const key in form) {
-          if (key in data.item) {
-            newForm[key as keyof typeof form] = data.item[key] !== null ? String(data.item[key]) : '';
+      if (data && data.item) {
+        const newForm = { ...initialFormState };
+        for (const key in newForm) {
+          if (key in data.item && data.item[key] !== null && data.item[key] !== undefined) {
+            newForm[key as keyof typeof newForm] = String(data.item[key]);
           }
         }
         setForm(newForm);
@@ -307,9 +350,7 @@ const Create: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      if (error instanceof Error) {
-        setMessage('සෙවීමේදී දෝෂයක් සිදුවිය.');
-      }
+      setMessage('සෙවීමේදී දෝෂයක් සිදුවිය.');
       setIsEditMode(false);
     } finally {
       setSearching(false);
@@ -325,58 +366,7 @@ const Create: React.FC = () => {
   };
 
   const clearForm = () => {
-    setForm({
-      fInAct: 'false',
-      Status: '',
-      CKey: '',
-      ItmKy: '',
-      ItemCode: '',
-      BarCode: '',
-      ItmNm: '',
-      EnglishName: '',
-      cdname: '',
-      ItmRefKy: '',
-      UnitKy: '',
-      CosPri: '',
-      NCostPrice: '',
-      ExtraPrice: '',
-      WholePrice: '',
-      ReOrdlLvl: '',
-      ScallItem: 'false',
-      SupKey: '',
-      RtQty1: '',
-      RtDis1: '',
-      RtQty2: '',
-      RtDis2: '',
-      RtQty3: '',
-      RtDis3: '',
-      RtQty4: '',
-      RtDis4: '',
-      WSQty1: '',
-      WSDis1: '',
-      WSQty2: '',
-      WSDis2: '',
-      WSQty3: '',
-      WSDis3: '',
-      WSQty4: '',
-      WSDis4: '',
-      DiscountQty: '',
-      QuntityDiscount: '',
-      CCPrice: '',
-      SlsPri: '',
-      MaxOrdQty: '',
-      ExpiryDate: '',
-      ItmCd: '',
-      Qty2: '',
-      WithDates: 'false',
-      ProductionDate: '',
-      BatchNo: '',
-      VATItem: 'false',
-      DoProcess: 'false',
-      DoRound: 'false',
-      ProcessRatio: '',
-      OrderNo: '',
-    });
+    setForm(initialFormState);
     setMessage('');
     setIsEditMode(false);
   };
@@ -471,7 +461,7 @@ const Create: React.FC = () => {
     marginRight: '5px'
   };
 
-  return (
+ return (
     <>
       <Head title="New Item Entry" />
       <div style={{ 
@@ -495,19 +485,6 @@ const Create: React.FC = () => {
           📄 New Item Entry
         </div>
 
-        {message && (
-          <div style={{ 
-            marginBottom: 15, 
-            padding: '5px',
-            backgroundColor: isEditMode ? '#d4edda' : '#f8d7da',
-            border: `1px solid ${isEditMode ? '#c3e6cb' : '#f5c6cb'}`,
-            borderRadius: '3px',
-            fontSize: '11px'
-          }}>
-            {message}
-          </div>
-        )}
-
         {loading && (
           <div style={{ 
             marginBottom: 15, 
@@ -521,55 +498,100 @@ const Create: React.FC = () => {
           </div>
         )}
 
+        {message && (
+          <div style={{ 
+            marginBottom: 15, 
+            padding: '5px',
+            backgroundColor: isEditMode ? '#d4edda' : '#f8d7da',
+            border: `1px solid ${isEditMode ? '#c3e6cb' : '#f5c6cb'}`,
+            borderRadius: '3px',
+            fontSize: '11px'
+          }}>
+            {message}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', gap: '15px' }}>
             {/* Left Column */}
             <div style={{ flex: '1' }}>
               {/* Basic Info Section */}
               <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 10px', alignItems: 'center', marginBottom: '15px' }}>
-                <label style={labelStyle}>අයිතම් අංකය</label>
-                <div style={{ display: 'flex', gap: '5px' }}>
-                  <select 
-                    value={form.ItemCode} 
-                    onChange={handleItemCodeSelect}
-                    style={{ ...inputStyle, backgroundColor: '#ffff99' }}
-                    disabled={loading}
-                  >
-                    <option value="">තෝරන්න</option>
-                    {itemCodeOptions.map((option) => (
-                      <option key={option.id} value={option.code}>
-                        {option.code} - {option.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={handleSearch} disabled={searching} style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#0078d4',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    fontSize: '11px'
-                  }}>
-                    {searching ? 'සොයමින්...' : 'සොයන්න'}
-                  </button>
-                </div>
+               <label style={labelStyle}>අයිතම් අංකය</label>
+<div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
+  {/* Manual input */}
+  <input
+    type="text"
+    placeholder="අතට අයිතම කේතය ඇතුළත් කරන්න"
+    value={form.ItemCode}
+    onChange={handleManualItemCodeChange}
+    style={inputStyle}
+  />
+  
+  {/* Or select from dropdown */}
+  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+    <span style={{ fontSize: '10px', color: '#666' }}>හෝ</span>
+    <select 
+      value="" 
+      onChange={handleItemCodeSelect}
+      style={{ ...inputStyle, flex: 1 }}
+      disabled={loading}
+    >
+       <option value="">දැනට ඇති අයිතමයන්ගෙන් තෝරන්න</option>
+  {Array.isArray(itemCodeOptions) && itemCodeOptions.map((option) => (
+    <option key={option.id} value={option.code}>
+      {option.code} - {option.name}
+    </option>
+  ))}
+    </select>
+    <button type="button" onClick={handleSearch} disabled={searching || loading} style={{
+      padding: '6px 12px',
+      backgroundColor: '#0078d4',
+      color: 'white',
+      border: 'none',
+      borderRadius: '3px',
+      cursor: 'pointer',
+      fontSize: '11px'
+    }}>
+      {searching ? 'සොයමින්...' : 'සොයන්න'}
+    </button>
+  </div>
+</div>
                 
-                <label style={labelStyle}>භාණ්ඩ විස්තරය</label>
-                <select 
-                  name="ItmNm"
-                  value={form.ItmNm}
-                  onChange={handleItemNameSelect}
-                  style={inputStyle}
-                  disabled={loading}
-                >
-                  <option value="">තෝරන්න</option>
-                  {itemOptions.map((option) => (
-                    <option key={option.id} value={option.name}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
+              <label style={labelStyle}>භාණ්ඩ විස්තරය</label>
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+  {/* Manual Text Input */}
+  <input
+    type="text"
+    name="ItmNm"
+    placeholder="භාණ්ඩ නම ඇතුළත් කරන්න"
+    value={form.ItmNm}
+    onChange={handleItemNameInput}
+    style={inputStyle}
+    disabled={loading}
+  />
+
+  {/* Or Dropdown */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+    <span style={{ fontSize: '10px', color: '#666' }}>හෝ</span>
+    <select
+      name="ItmNmSelect"
+      value=""
+      onChange={handleItemNameSelect}
+      style={{ ...inputStyle, flex: 1 }}
+      disabled={loading}
+    >
+      <option value="">භාණ්ඩයක් තෝරන්න</option>
+      {Array.isArray(itemOptions) && itemOptions.map((option, index) => (
+        <option key={option.id ?? index} value={option.name}>
+          {option.name}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+
 
                 <label style={labelStyle}>English Name</label>
                 <input
@@ -588,9 +610,9 @@ const Create: React.FC = () => {
                   style={inputStyle}
                   disabled={loading || categoryOptions.length === 0}
                 >
-                  <option value="">{categoryOptions.length === 0 ? 'Loading failed...' : 'තෝරන්න'}</option>
-                  {categoryOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
+                  <option value="">තෝරන්න</option>
+                  {Array.isArray(categoryOptions) && categoryOptions.map((option, index) => (
+                    <option key={option.id || index} value={option.id}>
                       {option.name}
                     </option>
                   ))}
@@ -683,11 +705,11 @@ const Create: React.FC = () => {
                   value={form.UnitKy}
                   onChange={handleChange}
                   style={inputStyle}
-                  disabled={loading || unitOptions.length === 0}
+                  disabled={loading}
                 >
-                  <option value="">{unitOptions.length === 0 ? 'Loading failed...' : 'තෝරන්න'}</option>
-                  {unitOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
+                  <option value="">තෝරන්න</option>
+                  {Array.isArray(unitOptions) && unitOptions.map((option, index) => (
+                    <option key={option.id || index} value={option.id}>
                       {option.name}
                     </option>
                   ))}
@@ -703,7 +725,7 @@ const Create: React.FC = () => {
                   style={inputStyle}
                 />
 
-                <label style={labelStyle}>සැපයුම්කරු තෝරන්න</label>
+                <label style={labelStyle}>සැපයුම්කරු</label>
                 <select 
                   name="SupKey"
                   value={form.SupKey}
@@ -712,9 +734,9 @@ const Create: React.FC = () => {
                   disabled={loading}
                 >
                   <option value="">තෝරන්න</option>
-                  {supplierOptions.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
+                  {Array.isArray(supplierOptions) && supplierOptions.map((option, index) => (
+                    <option key={option.id || index} value={option.id}>
+                      {option.name}
                     </option>
                   ))}
                 </select>
@@ -805,19 +827,19 @@ const Create: React.FC = () => {
                 }}>
                   මුල් මිල ගණන්
                 </div>
-             <table style={{ width: '100%', border: '1px solid #ccc', borderCollapse: 'collapse', fontSize: '10px' }}>
-                <thead>
+                <table style={{ width: '100%', border: '1px solid #ccc', borderCollapse: 'collapse', fontSize: '10px' }}>
+                  <thead>
                     <tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <th style={{ border: '1px solid #ccc', padding: '3px' }}>අංකය</th>
-                    <th style={{ border: '1px solid #ccc', padding: '3px' }}>සා. ගැණුම් මිල</th>
-                    <th style={{ border: '1px solid #ccc', padding: '3px' }}>ගැණුම් මිල</th>
-                    <th style={{ border: '1px solid #ccc', padding: '3px' }}>විකුණුම් මිල</th>
-                    <th style={{ border: '1px solid #ccc', padding: '3px' }}>තොග මිල</th>
-                    <th style={{ border: '1px solid #ccc', padding: '3px' }}>අමතර මිල</th>
-                    <th style={{ border: '1px solid #ccc', padding: '3px' }}>කාඩ් මිල</th>
-                    <th style={{ border: '1px solid #ccc', padding: '3px' }}>දිනය</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>අංකය</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>සා. ගැණුම් මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>ගැණුම් මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>විකුණුම් මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>තොග මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>අමතර මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>කාඩ් මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>දිනය</th>
                     </tr>
-                </thead>
+                  </thead>
                 <tbody>
                     <tr>
                     <td style={{ border: '1px solid #ccc', padding: '2px' }}>
