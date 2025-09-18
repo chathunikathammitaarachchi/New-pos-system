@@ -16,7 +16,7 @@ return new class extends Migration
             $table->id('accKy');
             $table->string('accCd', 20)->unique();
             $table->string('accNm', 60);
-            $table->string('accTyp', 10); // 'Customer' or 'Supplier'
+$table->string('accTyp', 10);
             $table->decimal('curBal', 15, 2)->default(0.00);
             $table->decimal('crLmt', 15, 2)->default(0.00);
             $table->boolean('fVATRegistered')->default(false);
