@@ -97,4 +97,11 @@ class Itemmaster extends Model
     {
         return $this->belongsTo(ControllerMaster::class, 'controller_master_id'); // adjust FK if needed
     }
+
+
+    // In App\Models\Itemmaster.php
+public function unit()
+{
+    return $this->belongsTo(UnitCnv::class, 'UnitKy', 'UnitKy');
+}
 }
