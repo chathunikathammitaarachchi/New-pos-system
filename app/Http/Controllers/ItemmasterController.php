@@ -13,16 +13,14 @@ use Illuminate\Support\Facades\Validator;
 class ItemmasterController extends Controller
 {
     public function index()
-{
-    $items = Itemmaster::paginate(10);
-    
-    return Inertia::render('Itemmaster/Index', [
-        'items' => $items,
-        'ziggy' => array_merge((new Ziggy)->toArray(), ['location' => url()->current()]),
-    ]);
-}
-
-    
+    {
+        $items = Itemmaster::paginate(10);
+        
+        return Inertia::render('Itemmaster/Index', [
+            'items' => $items,
+            'ziggy' => array_merge((new Ziggy)->toArray(), ['location' => url()->current()]),
+        ]);
+    }
 
     // Show the create form
     public function create()
@@ -117,28 +115,28 @@ class ItemmasterController extends Controller
     }
 
     // Search for an item by ItemCode or ItemName
-   public function search(Request $request)
-{
-    $request->validate([
-        'search_term' => 'required|string'
-    ]);
+    public function search(Request $request)
+    {
+        $request->validate([
+            'search_term' => 'required|string'
+        ]);
 
-    $item = Itemmaster::where('ItemCode', $request->search_term)
-        ->orWhere('ItmNm', 'like', '%' . $request->search_term . '%')
-        ->first();
+        $item = Itemmaster::where('ItemCode', $request->search_term)
+            ->orWhere('ItmNm', 'like', '%' . $request->search_term . '%')
+            ->first();
 
-    if (!$item) {
+        if (!$item) {
+            return response()->json([
+                'success' => false,
+                'message' => 'අයිතමය හමු නොවීය'
+            ], 404);
+        }
+
         return response()->json([
-            'success' => false,
-            'message' => 'අයිතමය හමු නොවීය'
-        ], 404);
+            'success' => true,
+            'item' => $item
+        ]);
     }
-
-    return response()->json([
-        'success' => true,
-        'item' => $item
-    ]);
-}
 
     // Update an existing item
     public function update(Request $request, $id)
@@ -228,7 +226,13 @@ class ItemmasterController extends Controller
     // Get item details for dropdowns
     public function getItemDetails($itemCode)
     {
-        $item = Itemmaster::where('ItemCode', $itemCode)->first();
+        $item = Itemmaster::where('ItemCode', $itemCode)
+            ->leftJoin('code_master', 'itemmaster.CKey', '=', 'code_master.conkey')
+            ->select(
+                'itemmaster.*',
+                'code_master.cdname as categoryName'
+            )
+            ->first();
         
         if (!$item) {
             return response()->json(['error' => 'Item not found'], 404);
@@ -237,30 +241,92 @@ class ItemmasterController extends Controller
         return response()->json($item);
     }
 
-    // Get all item codes for dropdown
-    public function getItemCodes()
+    // Get item codes with category information for dropdown
+    public function getItemCodesWithCategory()
     {
-        $itemCodes = Itemmaster::select('ItmKy', 'ItemCode', 'ItmNm', 'BarCode')->get();
-        return response()->json($itemCodes);
+        try {
+            $itemCodes = DB::table('itemmaster as im')
+                ->leftJoin('code_master as cm', 'im.CKey', '=', 'cm.conkey')
+                ->select(
+                    'im.ItmKy as id',
+                    'im.ItemCode as code',
+                    'im.ItmNm as name',
+                    'cm.cdname as categoryName'
+                )
+                ->orderBy('im.ItmNm')
+                ->get();
+
+            return response()->json($itemCodes);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch item codes with category',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     // Get all item names for dropdown
     public function getItemNames()
     {
-        $itemNames = Itemmaster::select('ItmKy', 'ItmNm', 'ItemCode')->get();
-        return response()->json($itemNames);
+        try {
+            $itemNames = Itemmaster::select(
+                'ItmKy as id',
+                'ItmNm as name',
+                'ItemCode as code'
+            )
+            ->orderBy('ItmNm')
+            ->get();
+            
+            return response()->json($itemNames);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch item names',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
+    // Get suppliers for dropdown (filtered by supplier type)
+    public function getSuppliers()
+    {
+        try {
+            $suppliers = DB::table('acc_mas')
+                ->where('accTyp', 'Supplier')
+                ->select('accKy as id', 'accNm as name')
+                ->orderBy('accNm')
+                ->get();
+            
+            return response()->json($suppliers);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch suppliers',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 
+    // Get categories from code_master table
+    public function getCategories()
+    {
+        try {
+            $categories = DB::table('code_master')
+                ->where('concode', 'ITM_CAT') // Adjust this based on your category code
+                ->select('conkey as id', 'cdname as name')
+                ->orderBy('cdname')
+                ->get();
+            
+            return response()->json($categories);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch categories',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 
-// Get suppliers for dropdown (filtered by supplier type)
-public function getSuppliers()
-{
-    $suppliers = DB::table('acc_mas')
-        ->where('accTyp', 'Supplier')
-        ->select('accKy as id', 'accNm as name')
-        ->get();
-    
-    return response()->json($suppliers);
-}
+    // Legacy method - keeping for backward compatibility
+    public function withCategory()
+    {
+        return $this->getItemCodesWithCategory();
+    }
 }
