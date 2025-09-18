@@ -58,4 +58,7 @@ public function address()
 {
     return $this->hasOne(Address::class, 'accKy', 'accKy');
 }
+
+
+
 }
