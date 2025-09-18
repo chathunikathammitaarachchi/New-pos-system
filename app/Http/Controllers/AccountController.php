@@ -236,5 +236,13 @@ public function updateSupplier(Request $request, $id)
         Log::error('Supplier update failed: ' . $e->getMessage());
         return redirect()->back()->with('error', 'සැපයුම්කරු යාවත්කාලීන කිරීමේදී දෝෂයක් සිදුවිය.');
     }
+
+
+    
+$supplier = AccMas::where('accKy', $request->SupKey)->where('accTyp', 'Supplier')->first();
+if (!$supplier) {
+    return back()->withErrors(['SupKey' => 'Invalid supplier selected']);
+}
+
 }
 }
