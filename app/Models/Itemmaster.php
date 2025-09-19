@@ -22,7 +22,7 @@ class Itemmaster extends Model
         'BarCode',
         'ItmNm',
         'EnglishName',
-        'cdname',
+        'catkey',
         'ItmRefKy',
         'UnitKy',
         'CosPri',
