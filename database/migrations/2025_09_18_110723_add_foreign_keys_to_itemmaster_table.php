@@ -14,7 +14,8 @@ return new class extends Migration
     {
         Schema::create('itemmaster', function (Blueprint $table) {
             $table->id('ItmKy'); // item key
-            $table->boolean('fInAct')->default(false); // is a active item
+            $table->boolean('fInAct')->default(false);
+            $table->string('ItmCd', 50)->nullable();
             $table->string('Status', 50)->nullable();
             $table->unsignedBigInteger('CKey')->nullable();
             $table->string('ItemCode', 50)->unique(); // item code
@@ -23,7 +24,7 @@ return new class extends Migration
             $table->string('EnglishName', 100)->nullable();
             
             // Category foreign key
-            $table->string('cdname')->nullable();
+            $table->string('catkey')->nullable();
             
             $table->unsignedBigInteger('ItmRefKy')->nullable(); 
             $table->unsignedBigInteger('UnitKy')->nullable(); 
@@ -64,7 +65,6 @@ return new class extends Migration
             $table->decimal('SlsPri', 10, 2)->nullable(); 
             $table->integer('MaxOrdQty')->nullable();
             $table->date('ExpiryDate')->nullable();
-            $table->string('ItmCd', 50)->nullable();
             $table->integer('Qty2')->nullable();
             $table->boolean('WithDates')->default(false);
             $table->date('ProductionDate')->nullable();
@@ -78,7 +78,7 @@ return new class extends Migration
             $table->timestamps();
             
             // Foreign key constraints
-            $table->foreign('cdname')->references('cdname')->on('code_master')->onDelete('cascade');
+            $table->foreign('catkey')->references('catkey')->on('code_master')->onDelete('cascade');
             $table->foreign('SupKey')->references('accKy')->on('acc_mas')->onDelete('cascade');
             
             // Indexes for better performance
@@ -90,9 +90,7 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
+
     public function down(): void
     {
         Schema::dropIfExists('itemmaster');
