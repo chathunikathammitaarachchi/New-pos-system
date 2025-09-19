@@ -8,6 +8,7 @@ use App\Http\Controllers\CodeMasterController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\UnitCnvController ;
 
+
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -36,8 +37,10 @@ Route::prefix('api')->middleware('api')->group(function () {
     Route::prefix('code-master')->group(function () {
         Route::get('/', [CodeMasterController::class, 'index']);
         Route::post('/', [CodeMasterController::class, 'store']);
-        Route::get('/cd-codes', [CodeMasterController::class, 'getCdCodes']);
-        Route::get('/categories', [CodeMasterController::class, 'getCategories']);
+      Route::get('/api/cd-codes', [ItemmasterController::class, 'getCategories']);
+Route::get('/api/units', [ItemmasterController::class, 'getUnits']);
+Route::get('/api/all-categories', [ItemmasterController::class, 'getAllCategories']);
+        
     });
 
     // Itemmaster API routes - Fixed and organized
