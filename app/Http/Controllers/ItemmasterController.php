@@ -40,7 +40,7 @@ class ItemmasterController extends Controller
             'BarCode' => 'nullable|string|max:100|unique:itemmaster,BarCode',
             'ItmNm' => 'required|string|max:100',
             'EnglishName' => 'nullable|string|max:100',
-            'cdname' => 'nullable|string',
+            'catkey' => 'nullable|string',
             'ItmRefKy' => 'nullable|integer',
             'UnitKy' => 'nullable|integer',
             'CosPri' => 'nullable|numeric',
@@ -151,7 +151,7 @@ class ItemmasterController extends Controller
             'BarCode' => 'nullable|string|max:100|unique:itemmaster,BarCode,' . $item->ItmKy . ',ItmKy',
             'ItmNm' => 'required|string|max:100',
             'EnglishName' => 'nullable|string|max:100',
-            'cdname' => 'nullable|string',
+            'catkey' => 'nullable|string',
             'ItmRefKy' => 'nullable|integer',
             'UnitKy' => 'nullable|integer',
             'CosPri' => 'nullable|numeric',
@@ -227,10 +227,10 @@ class ItemmasterController extends Controller
     public function getItemDetails($itemCode)
     {
         $item = Itemmaster::where('ItemCode', $itemCode)
-            ->leftJoin('code_master', 'itemmaster.CKey', '=', 'code_master.conkey')
+            ->leftJoin('code_master', 'itemmaster.catkey', '=', 'code_master.catkey')
             ->select(
                 'itemmaster.*',
-                'code_master.cdname as categoryName'
+                'code_master.cname as categoryName'
             )
             ->first();
         
@@ -246,12 +246,12 @@ class ItemmasterController extends Controller
     {
         try {
             $itemCodes = DB::table('itemmaster as im')
-                ->leftJoin('code_master as cm', 'im.CKey', '=', 'cm.conkey')
+                ->leftJoin('code_master as cm', 'im.catkey', '=', 'cm.catkey')
                 ->select(
                     'im.ItmKy as id',
                     'im.ItemCode as code',
                     'im.ItmNm as name',
-                    'cm.cdname as categoryName'
+                    'cm.cname as categoryName'
                 )
                 ->orderBy('im.ItmNm')
                 ->get();
@@ -305,20 +305,58 @@ class ItemmasterController extends Controller
         }
     }
 
-    // Get categories from code_master table
+    // Get categories from code_master table - FIXED VERSION
     public function getCategories()
     {
         try {
+            // Get categories where concode is 'ITM_CAT' or similar category identifier
             $categories = DB::table('code_master')
-                ->where('concode', 'ITM_CAT') // Adjust this based on your category code
-                ->select('conkey as id', 'cdname as name')
-                ->orderBy('cdname')
+                ->where('concode') // Adjust this based on your category concode
+                ->select('catkey as id', 'cname as name')
+                ->orderBy('cname')
                 ->get();
             
             return response()->json($categories);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to fetch categories',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Alternative method if you want to get all categories regardless of concode
+    public function getAllCategories()
+    {
+        try {
+            $categories = DB::table('code_master')
+                ->select('catkey as id', 'cname as name', 'concode')
+                ->orderBy('cname')
+                ->get();
+            
+            return response()->json($categories);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch all categories',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Get units from code_master table
+    public function getUnits()
+    {
+        try {
+            $units = DB::table('code_master')
+                ->where('concode', 'UNIT') // Adjust this based on your unit concode
+                ->select('catkey as id', 'cname as name')
+                ->orderBy('cname')
+                ->get();
+            
+            return response()->json($units);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch units',
                 'message' => $e->getMessage()
             ], 500);
         }
