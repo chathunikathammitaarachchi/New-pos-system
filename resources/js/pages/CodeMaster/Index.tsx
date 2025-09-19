@@ -12,8 +12,8 @@ interface CodeMaster {
   id?: number;
   conkey: string;
   concode: string;
-  cdcode: string;
-  cdname: string;
+  catkey: string;
+  cname: string;
   created_at?: string;
   updated_at?: string;
   controller?: {
@@ -42,7 +42,7 @@ const CodeMasterManager: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     concode: '',
-    cdname: ''
+    cname: ''
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [csrfToken, setCsrfToken] = useState<string>('');
@@ -55,7 +55,6 @@ const CodeMasterManager: React.FC = () => {
 
   const fetchCsrfToken = async () => {
     try {
-      // First try to get from meta tag
       const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       
       if (metaToken) {
@@ -63,14 +62,12 @@ const CodeMasterManager: React.FC = () => {
         return;
       }
       
-      // If not in meta tag, try to get from Laravel's CSRF cookie
       const response = await fetch('/sanctum/csrf-cookie', {
         method: 'GET',
         credentials: 'include'
       });
       
       if (response.ok) {
-        // The token should now be in the cookies, we'll extract it when making requests
         console.log('CSRF cookie set successfully');
       }
     } catch (err) {
@@ -99,7 +96,7 @@ const CodeMasterManager: React.FC = () => {
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest'
         },
-        credentials: 'include' // Important for sending cookies
+        credentials: 'include'
       });
       
       if (!response.ok) {
@@ -128,7 +125,7 @@ const CodeMasterManager: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.concode || !formData.cdname.trim()) {
+    if (!formData.concode || !formData.cname.trim()) {
       setError('Please fill in all required fields');
       return;
     }
@@ -139,14 +136,12 @@ const CodeMasterManager: React.FC = () => {
       setSuccess(null);
       setValidationErrors({});
       
-      // Prepare headers
       const headers: Record<string, string> = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
       };
       
-      // Add CSRF token if available (prefer the one from state, then from cookie)
       const tokenToUse = csrfToken || getCsrfTokenFromCookie();
       if (tokenToUse) {
         headers['X-XSRF-TOKEN'] = tokenToUse;
@@ -156,7 +151,7 @@ const CodeMasterManager: React.FC = () => {
         method: 'POST',
         headers,
         body: JSON.stringify(formData),
-        credentials: 'include' // Important for sending cookies
+        credentials: 'include'
       });
       
       console.log('Response status:', response.status);
@@ -165,16 +160,14 @@ const CodeMasterManager: React.FC = () => {
       console.log('Response data:', data);
       
       if (response.ok && data.success && data.data) {
-        // Add the new entry to the beginning of the list
         setCodeMaster(prev => [data.data, ...prev]);
-        setFormData({ concode: '', cdname: '' });
+        setFormData({ concode: '', cname: '' });
         setSuccess('Code Master entry created successfully!');
         setTimeout(() => setSuccess(null), 5000);
       } else if (response.status === 422 && data.errors) {
         setValidationErrors(data.errors);
         setError('Please fix the validation errors below');
       } else if (response.status === 419) {
-        // CSRF token issue, try to refresh it
         await fetchCsrfToken();
         setError('Session expired. Please try again.');
       } else {
@@ -196,7 +189,6 @@ const CodeMasterManager: React.FC = () => {
       [name]: value
     }));
     
-    // Clear validation errors for this field
     if (validationErrors[name]) {
       setValidationErrors(prev => {
         const updated = { ...prev };
@@ -226,7 +218,6 @@ const CodeMasterManager: React.FC = () => {
         <p className="text-gray-600 mt-2">Manage your code master entries and controller mappings</p>
       </div>
       
-      {/* Alert Messages */}
       {error && (
         <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
           <div className="flex items-center">
@@ -257,7 +248,6 @@ const CodeMasterManager: React.FC = () => {
         </div>
       )}
       
-      {/* Add New Code Master Form */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
         <div className="flex items-center mb-4">
           <Plus className="h-5 w-5 text-indigo-600 mr-2" />
@@ -296,16 +286,16 @@ const CodeMasterManager: React.FC = () => {
               </label>
               <input
                 type="text"
-                name="cdname"
-                value={formData.cdname}
+                name="cname"
+                value={formData.cname}
                 onChange={handleInputChange}
                 placeholder="Enter code name"
                 className={`w-full py-2 px-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                  validationErrors.cdname ? 'border-red-300' : 'border-gray-300'
+                  validationErrors.cname ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
-              {validationErrors.cdname && (
-                <p className="mt-1 text-sm text-red-600">{validationErrors.cdname[0]}</p>
+              {validationErrors.cname && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.cname[0]}</p>
               )}
             </div>
           </div>
@@ -332,7 +322,6 @@ const CodeMasterManager: React.FC = () => {
         </form>
       </div>
 
-      {/* Code Master Table */}
       <div className="bg-white rounded-lg shadow-md">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Code Master Entries</h2>
@@ -378,8 +367,8 @@ const CodeMasterManager: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{code.cdname}</div>
-                        <div className="text-sm text-gray-500 font-mono">{code.cdcode}</div>
+                        <div className="text-sm font-medium text-gray-900">{code.catkey}</div>
+                        <div className="text-sm text-gray-500">{code.cname}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
