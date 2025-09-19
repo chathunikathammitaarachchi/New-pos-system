@@ -9,7 +9,7 @@ interface ItemOption {
 }
 
 interface CategoryOption {
-  id: string; // Changed to string because catkey is string
+  id: number;
   name: string;
 }
 
@@ -19,7 +19,7 @@ interface SupplierOption {
 }
 
 interface UnitOption {
-  id: string; // Changed to string because catkey is string
+  id: number;
   name: string;
 }
 
@@ -94,22 +94,23 @@ const Create: React.FC = () => {
   const [unitOptions, setUnitOptions] = useState<UnitOption[]>([]);
   const [itemCodeOptions, setItemCodeOptions] = useState<ItemCodeOption[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Manual text input for item code
-  const handleManualItemCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleManualItemCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({
       ...form,
       ItemCode: e.target.value
     });
   };
 
-  // Manual text input for item name
-  const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm(prev => ({
-      ...prev,
-      ItmNm: e.target.value
-    }));
-  };
+
+  // Manual text input
+const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setForm(prev => ({
+    ...prev,
+    ItmNm: e.target.value
+  }));
+};
+
+
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -143,7 +144,7 @@ const Create: React.FC = () => {
             fallback: [] 
           },
           { 
-            url: '/api/cd-codes', // This will get categories from code_master
+            url: '/api/cd-codes', 
             setter: setCategoryOptions, 
             fallback: [] 
           },
@@ -153,7 +154,7 @@ const Create: React.FC = () => {
             fallback: [] 
           },
           { 
-            url: '/api/units', // This will get units from code_master
+            url: '/api/units', 
             setter: setUnitOptions, 
             fallback: [] 
           }
@@ -194,7 +195,7 @@ const Create: React.FC = () => {
 
       } catch (error) {
         console.error('Error in fetchDropdownData:', error);
-        setMessage('දත්ත ලබා ගැනීමට අසමත් විය. සමහර විශේෂාංග නිසි ලෙස ක්‍රියා නොකරනු ඇත.');
+        setMessage('Failed to load dropdown data. Some features may not work properly.');
       } finally {
         setLoading(false);
       }
@@ -203,7 +204,7 @@ const Create: React.FC = () => {
     fetchDropdownData();
   }, []);
 
-  const handleItemCodeSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+   const handleItemCodeSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedCode = e.target.value;
     
     if (!selectedCode) {
@@ -236,71 +237,75 @@ const Create: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      setMessage('දත්ත ලබා ගැනීමේදී දෝෂයක් සිදුවිය.');
+      if (error instanceof Error) {
+        setMessage('දත්ත ලබා ගැනීමේදී දෝෂයක් සිදුවිය.');
+      }
       setIsEditMode(false);
     } finally {
       setSearching(false);
     }
   };
 
-  // Dropdown selection for item name
+
+ // Dropdown selection
   const handleItemNameSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedName = e.target.value;
+  const selectedName = e.target.value;
 
-    setForm(prev => ({
-      ...prev,
-      ItmNm: selectedName,  // sync form field
-    }));
+  setForm(prev => ({
+    ...prev,
+    ItmNm: selectedName,  // sync form field
+  }));
 
-    if (!selectedName) {
-      setMessage('');
-      setIsEditMode(false);
-      return;
-    }
+  if (!selectedName) {
+    setMessage('');
+    setIsEditMode(false);
+    return;
+  }
 
-    try {
-      setSearching(true);
-      setMessage('අයිතමය ලෝඩ් වෙමින්...');
+  try {
+    setSearching(true);
+    setMessage('අයිතමය ලෝඩ් වෙමින්...');
 
-      const selectedItem = itemOptions.find(item => item.name === selectedName);
+    const selectedItem = itemOptions.find(item => item.name === selectedName);
 
-      if (selectedItem && selectedItem.code) {
-        const response = await fetch(`/api/item-details/${selectedItem.code}`);
+    if (selectedItem && selectedItem.code) {
+      const response = await fetch(`/api/item-details/${selectedItem.code}`);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (data) {
-          const newForm = { ...initialFormState };
+      if (data) {
+        const newForm = { ...initialFormState };
 
-          for (const key in newForm) {
-            if (key in data && data[key] !== null && data[key] !== undefined) {
-              newForm[key as keyof typeof newForm] = String(data[key]);
-            }
+        for (const key in newForm) {
+          if (key in data && data[key] !== null && data[key] !== undefined) {
+            newForm[key as keyof typeof newForm] = String(data[key]);
           }
-
-          setForm(newForm);
-          setMessage('අයිතමය සාර්ථකව ලෝඩ් විය.');
-          setIsEditMode(true);
-        } else {
-          setMessage('අයිතමය සොයාගත නොහැක.');
-          setIsEditMode(false);
         }
+
+        setForm(newForm);
+        setMessage('අයිතමය සාර්ථකව ලෝඩ් විය.');
+        setIsEditMode(true);
       } else {
-        setMessage('අයිතම කේතය සොයාගත නොහැක.');
+        setMessage('අයිතමය සොයාගත නොහැක.');
         setIsEditMode(false);
       }
-    } catch (error) {
-      console.error(error);
-      setMessage('දත්ත ලබා ගැනීමේදී දෝෂයක් සිදුවිය.');
+    } else {
+      setMessage('අයිතම කේතය සොයාගත නොහැක.');
       setIsEditMode(false);
-    } finally {
-      setSearching(false);
     }
-  };
+  } catch (error) {
+    console.error(error);
+    setMessage('දත්ත ලබා ගැනීමේදී දෝෂයක් සිදුවිය.');
+    setIsEditMode(false);
+  } finally {
+    setSearching(false);
+  }
+};
+
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -313,7 +318,7 @@ const Create: React.FC = () => {
 
   const handleSearch = async () => {
     if (!form.ItemCode && !form.ItmNm) {
-      alert("කරුණාකර අයිතම කේතය හෝ අයිතම නම ඇතුළත් කරන්න.");
+      alert("කරුණාකර Item Code හෝ Item Name ඇතුළත් කරන්න.");
       return;
     }
 
@@ -370,7 +375,7 @@ const Create: React.FC = () => {
     e.preventDefault();
 
     if (!form.ItemCode || !form.ItmNm) {
-      alert('කරුණාකර අවශ්‍ය ක්ෂේත්‍ර පුරවන්න: අයිතම කේතය සහ අයිතම නම');
+      alert('කරුණාකර අවශ්‍ය ක්ෂේත්‍ර පුරවන්න: Item Code සහ Item Name');
       return;
     }
 
@@ -384,9 +389,9 @@ const Create: React.FC = () => {
       DoRound: form.DoRound === 'true',
       CKey: form.CKey ? parseInt(form.CKey) : null,
       ItmKy: form.ItmKy ? parseInt(form.ItmKy) : null,
-      catkey: form.catkey || null, // Keep as string (catkey from code_master)
+      catkey: form.catkey ? parseInt(form.catkey) : null,
       ItmRefKy: form.ItmRefKy ? parseInt(form.ItmRefKy) : null,
-      UnitKy: form.UnitKy || null, // Keep as string (catkey from code_master for units)
+      UnitKy: form.UnitKy ? parseInt(form.UnitKy) : null,
       CosPri: form.CosPri ? parseFloat(form.CosPri) : null,
       NCostPrice: form.NCostPrice ? parseFloat(form.NCostPrice) : null,
       ExtraPrice: form.ExtraPrice ? parseFloat(form.ExtraPrice) : null,
@@ -456,9 +461,9 @@ const Create: React.FC = () => {
     marginRight: '5px'
   };
 
-  return (
+ return (
     <>
-      <Head title="නව අයිතමයක් ඇතුළත් කිරීම" />
+      <Head title="New Item Entry" />
       <div style={{ 
         width: '950px', 
         margin: '20px auto', 
@@ -477,7 +482,7 @@ const Create: React.FC = () => {
           fontSize: '11px',
           fontWeight: 'bold'
         }}>
-          📄 නව අයිතමයක් ඇතුළත් කිරීම
+          📄 New Item Entry
         </div>
 
         {loading && (
@@ -489,7 +494,7 @@ const Create: React.FC = () => {
             borderRadius: '3px',
             fontSize: '11px'
           }}>
-            දත්ත ලබා ගැනීම...
+            Loading dropdown data...
           </div>
         )}
 
@@ -513,80 +518,68 @@ const Create: React.FC = () => {
               {/* Basic Info Section */}
               <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 10px', alignItems: 'center', marginBottom: '15px' }}>
                 <label style={labelStyle}>අයිතම් අංකය</label>
-                <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
-                  {/* Manual input */}
-                  <input
-                    type="text"
-                    placeholder="අතට අයිතම කේතය ඇතුළත් කරන්න"
-                    value={form.ItemCode}
-                    onChange={handleManualItemCodeChange}
-                    style={inputStyle}
-                  />
-                  
-                  {/* Or select from dropdown */}
-                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '10px', color: '#666' }}>හෝ</span>
-                    <select 
-                      value="" 
-                      onChange={handleItemCodeSelect}
-                      style={{ ...inputStyle, flex: 1 }}
-                      disabled={loading}
-                    >
-                      <option value="">දැනට ඇති අයිතමයන්ගෙන් තෝරන්න</option>
-                      {Array.isArray(itemCodeOptions) && itemCodeOptions.map((option) => (
-                        <option key={option.id} value={option.code}>
-                          {option.code} - {option.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="button" onClick={handleSearch} disabled={searching || loading} style={{
-                      padding: '6px 12px',
-                      backgroundColor: '#0078d4',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      fontSize: '11px'
-                    }}>
-                      {searching ? 'සොයමින්...' : 'සොයන්න'}
-                    </button>
-                  </div>
-                </div>
-                
-                <label style={labelStyle}>භාණ්ඩ විස්තරය</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                  {/* Manual Text Input */}
-                  <input
-                    type="text"
-                    name="ItmNm"
-                    placeholder="භාණ්ඩ නම ඇතුළත් කරන්න"
-                    value={form.ItmNm}
-                    onChange={handleItemNameInput}
-                    style={inputStyle}
-                    disabled={loading}
-                  />
+<div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
+  {/* Single input with datalist */}
+  <input
+    type="text"
+    list="itemCodeList"
+    placeholder="අයිතම කේතය ටයිප් කරන්න හෝ තෝරන්න"
+    value={form.ItemCode}
+    onChange={handleManualItemCodeChange}
+    style={inputStyle}
+    disabled={loading}
+  />
 
-                  {/* Or Dropdown */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{ fontSize: '10px', color: '#666' }}>හෝ</span>
-                    <select
-                      name="ItmNmSelect"
-                      value=""
-                      onChange={handleItemNameSelect}
-                      style={{ ...inputStyle, flex: 1 }}
-                      disabled={loading}
-                    >
-                      <option value="">භාණ්ඩයක් තෝරන්න</option>
-                      {Array.isArray(itemOptions) && itemOptions.map((option, index) => (
-                        <option key={option.id ?? index} value={option.name}>
-                          {option.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+  <datalist id="itemCodeList">
+    {Array.isArray(itemCodeOptions) && itemCodeOptions.map((option) => (
+      <option key={option.id} value={option.code}>
+        {option.code} - {option.name}
+      </option>
+    ))}
+  </datalist>
 
-                <label style={labelStyle}>ඉංග්‍රීසි නම</label>
+  <button 
+    type="button" 
+    onClick={handleSearch} 
+    disabled={searching || loading}
+    style={{
+      padding: '6px 12px',
+      backgroundColor: '#0078d4',
+      color: 'white',
+      border: 'none',
+      borderRadius: '3px',
+      cursor: 'pointer',
+      fontSize: '11px'
+    }}
+  >
+    {searching ? 'සොයමින්...' : 'සොයන්න'}
+  </button>
+</div>
+
+          <label style={labelStyle}>භාණ්ඩ විස්තරය</label>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+  {/* Single Input Field with Datalist */}
+  <input
+    type="text"
+    name="ItmNm"
+    list="itemNameList"
+    placeholder="භාණ්ඩ නම ටයිප් කරන්න හෝ තෝරන්න"
+    value={form.ItmNm}
+    onChange={handleItemNameInput}
+    style={inputStyle}
+    disabled={loading}
+  />
+
+  <datalist id="itemNameList">
+    {Array.isArray(itemOptions) && itemOptions.map((option, index) => (
+      <option key={option.id ?? index} value={option.name} />
+    ))}
+  </datalist>
+</div>
+
+
+
+                <label style={labelStyle}>English Name</label>
                 <input
                   type="text"
                   name="EnglishName"
@@ -611,7 +604,7 @@ const Create: React.FC = () => {
                   ))}
                 </select>
 
-                <label style={labelStyle}>ගැණුම් මිල</label>
+                <label style={labelStyle}> ගැණුම් මිල</label>
                 <input
                   type="number"
                   step="0.01"
@@ -670,7 +663,7 @@ const Create: React.FC = () => {
                   style={inputStyle}
                 />
 
-                <label style={labelStyle}>bar code genetate</label>
+                <label style={labelStyle}>Bar Code</label>
                 <div style={{ display: 'flex', gap: '5px' }}>
                   <input
                     type="text"
@@ -688,7 +681,7 @@ const Create: React.FC = () => {
                     cursor: 'pointer',
                     fontSize: '10px'
                   }}>
-                    බාර්කෝඩ් ජනනය
+                    Generate BarCode
                   </button>
                 </div>
 
@@ -748,9 +741,9 @@ const Create: React.FC = () => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
                   <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 1</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 2</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 3</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 4</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය  2</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය  3</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය  4</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
                   <input type="number" name="RtQty1" value={form.RtQty1} onChange={handleChange} style={inputStyle} />
@@ -759,10 +752,10 @@ const Create: React.FC = () => {
                   <input type="number" name="RtQty4" value={form.RtQty4} onChange={handleChange} style={inputStyle} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත 1</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත 2</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත 3</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත 4</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත1</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත2</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත3</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත4</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
                   <input type="number" step="0.01" name="RtDis1" value={form.RtDis1} onChange={handleChange} style={inputStyle} />
@@ -785,9 +778,9 @@ const Create: React.FC = () => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
                   <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 1</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 2</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 3</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 4</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය   2</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය   3</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය  4</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
                   <input type="number" name="WSQty1" value={form.WSQty1} onChange={handleChange} style={inputStyle} />
@@ -796,10 +789,10 @@ const Create: React.FC = () => {
                   <input type="number" name="WSQty4" value={form.WSQty4} onChange={handleChange} style={inputStyle} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත 1</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත 2</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත 3</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත 4</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත1</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත2</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත3</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත4</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
                   <input type="number" step="0.01" name="WSDis1" value={form.WSDis1} onChange={handleChange} style={inputStyle} />
@@ -808,7 +801,63 @@ const Create: React.FC = () => {
                   <input type="number" step="0.01" name="WSDis4" value={form.WSDis4} onChange={handleChange} style={inputStyle} />
                 </div>
               </div>
-               </div>
+
+              {/* Price Table */}
+              <div style={{ marginBottom: '15px' }}>
+                <div style={{ 
+                  backgroundColor: '#e9ecef', 
+                  padding: '5px', 
+                  marginBottom: '8px',
+                  fontWeight: 'bold',
+                  fontSize: '11px'
+                }}>
+                  මුල් මිල ගණන්
+                </div>
+                <table style={{ width: '100%', border: '1px solid #ccc', borderCollapse: 'collapse', fontSize: '10px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f5f5f5' }}>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>අංකය</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>සා. ගැණුම් මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>ගැණුම් මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>විකුණුම් මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>තොග මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>අමතර මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>කාඩ් මිල</th>
+                      <th style={{ border: '1px solid #ccc', padding: '3px' }}>දිනය</th>
+                    </tr>
+                  </thead>
+                <tbody>
+                    <tr>
+                    <td style={{ border: '1px solid #ccc', padding: '2px' }}>
+                        <input type="number" step="0.01" value={form.ItmCd} style={{ width: '100%', padding: '1px', fontSize: '10px' }} readOnly />
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '2px' }}>
+                        <input type="number" step="0.01" value={form.NCostPrice} style={{ width: '100%', padding: '1px', fontSize: '10px' }} readOnly />
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '2px' }}>
+                        <input type="number" step="0.01" value={form.CosPri} style={{ width: '100%', padding: '1px', fontSize: '10px' }} readOnly />
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '2px' }}>
+                        <input type="number" step="0.01" value={form.SlsPri} style={{ width: '100%', padding: '1px', fontSize: '10px' }} readOnly />
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '2px' }}>
+                        <input type="number" step="0.01" value={form.WholePrice} style={{ width: '100%', padding: '1px', fontSize: '10px' }} readOnly />
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '2px' }}>
+                        <input type="number" step="0.01" value={form.ExtraPrice} style={{ width: '100%', padding: '1px', fontSize: '10px' }} readOnly />
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '2px' }}>
+                        <input type="number" step="0.01" value={form.CCPrice} style={{ width: '100%', padding: '1px', fontSize: '10px' }} readOnly />
+                    </td>
+                    <td style={{ border: '1px solid #ccc', padding: '2px' }}>
+                        <input type="text" value={form.WithDates} style={{ width: '100%', padding: '1px', fontSize: '10px' }} readOnly />
+                    </td>
+                    </tr>
+                </tbody>
+                </table>
+
+              </div>
+            </div>
 
             {/* Right Column */}
             <div style={{ width: '200px' }}>
