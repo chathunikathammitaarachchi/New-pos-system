@@ -25,7 +25,6 @@ class DatabaseSeeder extends Seeder
             CodeMasterSeeder::class,        // Needs controller master
             AccMasSeeder::class,           // Suppliers needed for items
             UnitCnvSeeder::class,          // Units needed for items
-            ItemMasterSeeder::class,       // Needs codes, suppliers, and units
         ]);
     }
 }

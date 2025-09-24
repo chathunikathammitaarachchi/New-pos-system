@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import { Head } from '@inertiajs/react';
-
 interface ItemOption {
   id: number;
   name: string;
@@ -363,13 +362,29 @@ const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
 
-  const generateBarCode = () => {
-    const barCode = `BC${Date.now()}${Math.floor(Math.random() * 1000)}`;
-    setForm({
-      ...form,
-      BarCode: barCode,
-    });
-  };
+ const generateBarCode = () => {
+  // Get current timestamp in milliseconds (normally 13 digits)
+  const timestamp = Date.now().toString();
+
+  // Ensure barcode is 13 digits:
+  // If timestamp is longer than 13, truncate
+  // If shorter, pad with random digits
+  let barCode = timestamp;
+  if (barCode.length > 13) {
+    barCode = barCode.substring(0, 13);
+  } else if (barCode.length < 13) {
+    const remainingLength = 13 - barCode.length;
+    const randomDigits = Math.floor(Math.random() * Math.pow(10, remainingLength))
+                          .toString()
+                          .padStart(remainingLength, '0');
+    barCode += randomDigits;
+  }
+
+  setForm({
+    ...form,
+    BarCode: barCode,
+  });
+};
 
   const clearForm = () => {
     setForm(initialFormState);
@@ -456,23 +471,46 @@ const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     Inertia.post('/itemmaster', payload);
   }
 };
+// Soft refresh function
+const handleSoftRefresh = async () => {
+  setMessage('Refreshing data...');
+  setSearching(true);
+  
+  // Clear form but keep basic selections
+  const currentItemCode = form.ItemCode;
+  const currentItemName = form.ItmNm;
+  
+  clearForm();
+  
+  // Restore basic selections
+  setForm(prev => ({
+    ...prev,
+    ItemCode: currentItemCode,
+    ItmNm: currentItemName
+  }));
+  
+  // Re-fetch dropdown data
+  await fetchDropdownData();
+  
+  setMessage('Data refreshed successfully');
+  setSearching(false);
+};
+const inputStyle = {
+  width: '100%',
+  padding: '6px',
+  border: '1px solid #ccc',
+  borderRadius: '3px',
+  fontSize: '12px',
+  fontFamily: 'Arial, sans-serif'
+};
 
-  const inputStyle = {
-    width: '100%',
-    padding: '6px',
-    border: '1px solid #ccc',
-    borderRadius: '3px',
-    fontSize: '12px',
-    fontFamily: 'Arial, sans-serif'
-  };
-
-  const labelStyle = {
-    fontSize: '11px',
-    fontFamily: 'Arial, sans-serif',
-    marginBottom: '2px',
-    display: 'block',
-    fontWeight: '500'
-  };
+const labelStyle = {
+  fontSize: '11px',
+  fontFamily: 'Arial, sans-serif',
+  marginBottom: '4px',
+  display: 'block',
+  fontWeight: '500'
+};
 
   const checkboxStyle = {
     marginRight: '5px'
@@ -480,7 +518,11 @@ const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const rowStyle = {
   display: 'flex',
-  gap: '20px',
+  gap: '50px',
+    justifyContent: 'space-between',
+
+    marginBottom: '15px',
+
 };
 
 const columnStyle = {
@@ -489,6 +531,8 @@ const columnStyle = {
   alignItems: 'center',
   gap: '10px',
 };
+
+
 
  return (
   <>
@@ -547,61 +591,71 @@ const columnStyle = {
             {/* Grid Section for Basic Info */}
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 10px', alignItems: 'center', marginBottom: '15px' }}>
               {/* Item Code */}
-              <label style={labelStyle}>අයිතම් අංකය</label>
-              <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
-                <input
-                  type="text"
-                  list="itemCodeList"
-                  placeholder="අයිතම කේතය ටයිප් කරන්න හෝ තෝරන්න"
-                  value={form.ItemCode}
-                  onChange={handleManualItemCodeChange}
-                  style={inputStyle}
-                  disabled={loading}
-                />
-                <datalist id="itemCodeList">
-                  {Array.isArray(itemCodeOptions) && itemCodeOptions.map((option) => (
-                    <option key={option.id} value={option.code}>
-                      {option.code} - {option.name}
-                    </option>
-                  ))}
-                </datalist>
-                <button 
-                  type="button" 
-                  onClick={handleSearch} 
-                  disabled={searching || loading}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#0078d4',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    width:'50%'
-                  }}
-                >
-                  {searching ? 'සොයමින්...' : 'සොයන්න'}
-                </button>
-              </div>
-              {/* Item Name */}
-              <label style={labelStyle}>භාණ්ඩ විස්තරය</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <input
-                  type="text"
-                  name="ItmNm"
-                  list="itemNameList"
-                  placeholder="භාණ්ඩ නම ටයිප් කරන්න හෝ තෝරන්න"
-                  value={form.ItmNm}
-                  onChange={handleItemNameInput}
-                  style={inputStyle}
-                  disabled={loading}
-                />
-                <datalist id="itemNameList">
-                  {Array.isArray(itemOptions) && itemOptions.map((option, index) => (
-                    <option key={option.id ?? index} value={option.name} />
-                  ))}
-                </datalist>
-              </div>
+              {/* Item Code */}
+<label style={labelStyle}>අයිතම් අංකය</label>
+<div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+  <input
+    type="text"
+    list="itemCodeList"
+    placeholder="අයිතම කේතය ටයිප් කරන්න හෝ තෝරන්න"
+    value={form.ItemCode}
+    onChange={handleManualItemCodeChange}
+    style={{ 
+      ...inputStyle, 
+      flex: 1, 
+      fontSize: '11px', 
+      padding: '6px 8px' 
+    }}
+    disabled={loading}
+  />
+  <button 
+    type="button" 
+    onClick={handleSearch} 
+    disabled={searching || loading}
+    style={{
+      padding: '6px 10px',
+      backgroundColor: '#0078d4',
+      color: 'white',
+      border: 'none',
+      borderRadius: '3px',
+      cursor: 'pointer',
+      fontSize: '11px',
+      whiteSpace: 'nowrap'
+    }}
+  >
+    {searching ? 'සොයමින්...' : 'සොයන්න'}
+  </button>
+
+  {/* Datalist for autocomplete */}
+  <datalist id="itemCodeList">
+    {Array.isArray(itemCodeOptions) && itemCodeOptions.map((option) => (
+      <option key={option.id} value={option.code}>
+        {option.code} - {option.name}
+      </option>
+    ))}
+  </datalist>
+</div>
+
+            {/* Item Name */}
+<label style={labelStyle}>භාණ්ඩ විස්තරය</label>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+  <input
+    type="text"
+    name="ItmNm"
+    list="itemNameList"
+    placeholder="භාණ්ඩ නම ටයිප් කරන්න හෝ තෝරන්න"
+    value={form.ItmNm}
+    onChange={handleItemNameInput}
+    style={inputStyle}
+    disabled={loading}
+  />
+  <datalist id="itemNameList">
+    {Array.isArray(itemOptions) && itemOptions.map((option, index) => (
+      <option key={option.id ?? index} value={option.name} />
+    ))}
+  </datalist>
+</div>
+
               {/* English Name */}
               <label style={labelStyle}>English Name</label>
               <input
@@ -628,170 +682,173 @@ const columnStyle = {
                 ))}
               </select>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-
-                {/* Row 1 */}
-                <div style={rowStyle}>
-                  <div style={columnStyle}>
-                    <label htmlFor="CosPri" style={labelStyle}>ගැණුම් මිල</label>
-                    <input
-                      id="CosPri"
-                      type="number"
-                      step="0.01"
-                      name="CosPri"
-                      value={form.CosPri}
-                      onChange={handleChange}
-                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
-                    />
-                  </div>
-                  <div style={columnStyle}>
-                    <label htmlFor="NCostPrice" style={labelStyle}>සාමාන්‍ය ගැණුම් මිල</label>
-                    <input
-                      id="NCostPrice"
-                      type="number"
-                      step="0.01"
-                      name="NCostPrice"
-                      value={form.NCostPrice}
-                      onChange={handleChange}
-                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
-                    />
-                  </div>
-                </div>
-
-                {/* Row 2 */}
-                <div style={rowStyle}>
-                  <div style={columnStyle}>
-                    <label htmlFor="SlsPri" style={labelStyle}>විකුණුම් මිල</label>
-                    <input
-                      id="SlsPri"
-                      type="number"
-                      step="0.01"
-                      name="SlsPri"
-                      value={form.SlsPri}
-                      onChange={handleChange}
-                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
-                    />
-                  </div>
-                  <div style={columnStyle}>
-                    <label htmlFor="WholePrice" style={labelStyle}>තොග මිල</label>
-                    <input
-                      id="WholePrice"
-                      type="number"
-                      step="0.01"
-                      name="WholePrice"
-                      value={form.WholePrice}
-                      onChange={handleChange}
-                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
-                    />
-                  </div>
-                </div>
-
-                {/* Row 3 */}
-                <div style={rowStyle}>
-                  <div style={columnStyle}>
-                    <label htmlFor="ExtraPrice" style={labelStyle}>අමතර මිල</label>
-                    <input
-                      id="ExtraPrice"
-                      type="number"
-                      step="0.01"
-                      name="ExtraPrice"
-                      value={form.ExtraPrice}
-                      onChange={handleChange}
-                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
-                    />
-                  </div>
-                  <div style={columnStyle}>
-                    <label htmlFor="CCPrice" style={labelStyle}>කාඩ් මිල</label>
-                    <input
-                      id="CCPrice"
-                      type="number"
-                      step="0.01"
-                      name="CCPrice"
-                      value={form.CCPrice}
-                      onChange={handleChange}
-                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
-                    />
-                  </div>
-                </div>
-
-              <div style={rowStyle}>
-                <div style={columnStyle}>
-                  <label htmlFor="ReOrdlLvl" style={labelStyle}>අවම තොග වට්ටම</label>
-                  <input
-                    id="ReOrdlLvl"
-                    type="number"
-                    name="ReOrdlLvl"
-                    value={form.ReOrdlLvl}
-                    onChange={handleChange}
-                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
-                  />
-                </div>
-
-                {/* Column 2: ඒකකය */}
-                <div style={columnStyle}>
-                  <label htmlFor="UnitKy" style={labelStyle}>ඒකකය</label>
-                  <select
-                    id="UnitKy"
-                    name="UnitKy"
-                    value={form.UnitKy}
-                    onChange={handleChange}
-                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
-                    disabled={loading}
-                  >
-                    <option value="">තෝරන්න</option>
-                    {Array.isArray(unitOptions) && unitOptions.map((option, index) => (
-                      <option key={option.id || index} value={option.id}>
-                        {option.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              </div>
-
-
-            {/* Bar Code */}
-              <div style={{ display: 'flex', gap: '20px', padding: '6px 2px'}}>
-              <label style={labelStyle}>Bar Code</label>
-
-                <input
-                  type="text"
-                  name="BarCode"
-                  value={form.BarCode}
-                  onChange={handleChange}
-                  style={{ ...inputStyle, width:'150px'}}
-                />
-                <button type="button" onClick={generateBarCode} style={{
-                  padding: '3px 5px',
-                  backgroundColor: '#aeb1ae',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  fontSize: '10px'
-                }}>
-                  Generate BarCode
-                </button>
-              </div>
-            {/* Supplier */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '25px', marginBottom: '15px' }}>
-
-              <label style={labelStyle}>සැපයුම්කරු</label>
-              <select 
-                name="SupKey"
-                value={form.SupKey}
-                onChange={handleChange}
-                style={inputStyle}
-                disabled={loading}
-              >
-                <option value="">තෝරන්න</option>
-                {Array.isArray(supplierOptions) && supplierOptions.map((option, index) => (
-                  <option key={option.id || index} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
+         {/* Price Fields */}
+<div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+  {/* Row 1 */}
+  <div style={{ display: 'flex', gap: '20px' }}>
+    <div style={{ flex: 1 }}>
+      <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>ගැණුම් මිල</label>
+      <input
+        type="number"
+        step="0.01"
+        name="CosPri"
+        value={form.CosPri}
+        onChange={handleChange}
+        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+      />
     </div>
+    <div style={{ flex: 1 }}>
+      <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>සාමාන්‍ය ගැණුම් මිල</label>
+      <input
+        type="number"
+        step="0.01"
+        name="NCostPrice"
+        value={form.NCostPrice}
+        onChange={handleChange}
+        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+      />
+    </div>
+  </div>
+
+  {/* Row 2 */}
+  <div style={{ display: 'flex', gap: '20px' }}>
+    <div style={{ flex: 1 }}>
+      <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>සිල්ලර මිල</label>
+      <input
+        type="number"
+        step="0.01"
+        name="SlsPri"
+        value={form.SlsPri}
+        onChange={handleChange}
+        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+      />
+    </div>
+    <div style={{ flex: 1 }}>
+      <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>තොග මිල</label>
+      <input
+        type="number"
+        step="0.01"
+        name="WholePrice"
+        value={form.WholePrice}
+        onChange={handleChange}
+        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+      />
+    </div>
+  </div>
+
+  {/* Row 3 */}
+  <div style={{ display: 'flex', gap: '20px' }}>
+    <div style={{ flex: 1 }}>
+      <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>අමතර මිල</label>
+      <input
+        type="number"
+        step="0.01"
+        name="ExtraPrice"
+        value={form.ExtraPrice}
+        onChange={handleChange}
+        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+      />
+    </div>
+    <div style={{ flex: 1 }}>
+      <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>කාඩ් මිල</label>
+      <input
+        type="number"
+        step="0.01"
+        name="CCPrice"
+        value={form.CCPrice}
+        onChange={handleChange}
+        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+      />
+    </div>
+  </div>
+
+  {/* Row 4 */}
+  <div style={{ display: 'flex', gap: '20px' }}>
+    <div style={{ flex: 1 }}>
+      <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>අවම තොග වට්ටම</label>
+      <input
+        type="number"
+        name="ReOrdlLvl"
+        value={form.ReOrdlLvl}
+        onChange={handleChange}
+        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+      />
+    </div>
+    <div style={{ flex: 1 }}>
+      <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>ඒකකය</label>
+      <select
+        name="UnitKy"
+        value={form.UnitKy}
+        onChange={handleChange}
+        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+      >
+        <option value="">තෝරන්න</option>
+        {unitOptions.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+<div style={{ display: 'flex', gap: '40px', marginBottom: '15px', alignItems: 'flex-start' }}>
+  {/* Bar Code Section */}
+  <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <label style={labelStyle}>Bar Code</label>
+    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+      <input
+        type="text"
+        name="BarCode"
+        value={form.BarCode}
+        onChange={handleChange}
+        style={{ ...inputStyle, width: '150px' }}
+      />
+      <button
+        type="button"
+        onClick={generateBarCode}
+        style={{
+          padding: '6px 10px',
+          backgroundColor: '#6c757d',
+          color: 'white',
+          border: 'none',
+          borderRadius: '3px',
+          cursor: 'pointer',
+          fontSize: '11px',
+          height: '30px'
+        }}
+      >
+        Generate
+      </button>
+    </div>
+  </div>
+
+  {/* Supplier Section */}
+  <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <label style={labelStyle}>සැපයුම්කරු</label>
+    <select
+      name="SupKey"
+      value={form.SupKey}
+      onChange={handleChange}
+      style={inputStyle}
+      disabled={loading}
+    >
+      <option value="">තෝරන්න</option>
+      {Array.isArray(supplierOptions) &&
+        supplierOptions.map((option, index) => (
+          <option key={option.id || index} value={option.id}>
+            {option.name}
+          </option>
+        ))}
+    </select>
+  </div>
+</div>
+
 
               {/* Retail Discounts */}
               <div style={{ marginBottom: '15px' }}>
@@ -802,7 +859,7 @@ const columnStyle = {
                   fontWeight: 'bold',
                   fontSize: '11px'
                 }}>
-                  අලෙවි මිල සහන වර්ග
+                  සිල්ලර මිල සදහා වට්ටම්
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
                   <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 1</div>
@@ -817,10 +874,10 @@ const columnStyle = {
                   <input type="number" name="RtQty4" value={form.RtQty4} onChange={handleChange} style={inputStyle} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත1</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත2</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත3</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත4</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන වට්ටම 1</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන වට්ටම 2</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන වට්ටම 3</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන වට්ටම 4</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
                   <input type="number" step="0.01" name="RtDis1" value={form.RtDis1} onChange={handleChange} style={inputStyle} />
@@ -839,13 +896,13 @@ const columnStyle = {
                   fontWeight: 'bold',
                   fontSize: '11px'
                 }}>
-                  තොග මිල සහන වර්ග
+                  තොග මිල සදහා වට්ටම්
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
                   <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 1</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය   2</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය   3</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය  4</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 2</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 3</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>අවම ප්‍රමාණය 4</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
                   <input type="number" name="WSQty1" value={form.WSQty1} onChange={handleChange} style={inputStyle} />
@@ -854,10 +911,10 @@ const columnStyle = {
                   <input type="number" name="WSQty4" value={form.WSQty4} onChange={handleChange} style={inputStyle} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', marginBottom: '5px' }}>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත1</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත2</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත3</div>
-                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන ප්‍රතිශත4</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන වට්ටම 1</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන වට්ටම 2</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන වට්ටම 3</div>
+                  <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: 'bold' }}>සහන වට්ටම 4</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
                   <input type="number" step="0.01" name="WSDis1" value={form.WSDis1} onChange={handleChange} style={inputStyle} />
@@ -1125,3 +1182,7 @@ const columnStyle = {
 };
 
 export default Create;
+
+function fetchDropdownData() {
+  throw new Error('Function not implemented.');
+}
