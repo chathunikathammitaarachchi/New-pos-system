@@ -40,7 +40,8 @@ Route::prefix('api')->middleware('api')->group(function () {
       Route::get('/api/cd-codes', [ItemmasterController::class, 'getCategories']);
 Route::get('/api/units', [ItemmasterController::class, 'getUnits']);
 Route::get('/api/all-categories', [ItemmasterController::class, 'getAllCategories']);
-        
+        // routes/api.php
+Route::get('/debug-concodes', [ItemmasterController::class, 'debugConcodes']);
     });
 
     // Itemmaster API routes - Fixed and organized

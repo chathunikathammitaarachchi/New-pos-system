@@ -97,6 +97,10 @@ class Itemmaster extends Model
     {
         return $this->belongsTo(ControllerMaster::class, 'controller_master_id'); // adjust FK if needed
     }
+public function category()
+{
+    return $this->belongsTo(codemaster::class, 'catkey', 'catkey'); // adjust class & keys accordingly
+}
 
 
     // In App\Models\Itemmaster.php

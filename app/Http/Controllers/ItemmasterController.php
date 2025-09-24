@@ -151,7 +151,7 @@ class ItemmasterController extends Controller
             'BarCode' => 'nullable|string|max:100|unique:itemmaster,BarCode,' . $item->ItmKy . ',ItmKy',
             'ItmNm' => 'required|string|max:100',
             'EnglishName' => 'nullable|string|max:100',
-            'catkey' => 'nullable|string',
+'catkey' => 'nullable|string|exists:code_master,catkey',
             'ItmRefKy' => 'nullable|integer',
             'UnitKy' => 'nullable|integer',
             'CosPri' => 'nullable|numeric',
@@ -306,25 +306,24 @@ class ItemmasterController extends Controller
     }
 
     // Get categories from code_master table - FIXED VERSION
-    public function getCategories()
-    {
-        try {
-            // Get categories where concode is 'ITM_CAT' or similar category identifier
-            $categories = DB::table('code_master')
-                ->where('concode') // Adjust this based on your category concode
-                ->select('catkey as id', 'cname as name')
-                ->orderBy('cname')
-                ->get();
+ public function getCategories()
+{
+    try {
+        $categories = DB::table('code_master')
+            ->whereNotNull('catkey')  
+            ->where('catkey', '!=', '')  
+            ->select('catkey as id', 'cname as name')  
+            ->orderBy('cname')
+            ->get();
             
-            return response()->json($categories);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to fetch categories',
-                'message' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json($categories);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Failed to fetch categories',
+            'message' => $e->getMessage()
+        ], 500);
     }
-
+}
     // Alternative method if you want to get all categories regardless of concode
     public function getAllCategories()
     {

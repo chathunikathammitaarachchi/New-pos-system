@@ -9,7 +9,7 @@ interface ItemOption {
 }
 
 interface CategoryOption {
-  id: number;
+  id: string;    
   name: string;
 }
 
@@ -160,6 +160,9 @@ const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
           }
         ];
 
+
+
+        
         const fetchPromises = endpoints.map(async ({ url, setter, fallback }) => {
           try {
             const response = await fetch(url, fetchOptions);
@@ -310,6 +313,9 @@ const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
+
+
+    
     setForm({
       ...form,
       [e.target.name]: e.target.value,
@@ -379,6 +385,13 @@ const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
       return;
     }
 
+
+      console.log('Submitting form data:', {
+    ...form,
+    catkey: form.catkey,
+    catkeyType: typeof form.catkey
+  });
+
     const payload = {
       ...form,
       fInAct: form.fInAct === 'true',
@@ -389,7 +402,7 @@ const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
       DoRound: form.DoRound === 'true',
       CKey: form.CKey ? parseInt(form.CKey) : null,
       ItmKy: form.ItmKy ? parseInt(form.ItmKy) : null,
-      catkey: form.catkey ? parseInt(form.catkey) : null,
+    catkey: form.catkey || null,  
       ItmRefKy: form.ItmRefKy ? parseInt(form.ItmRefKy) : null,
       UnitKy: form.UnitKy ? parseInt(form.UnitKy) : null,
       CosPri: form.CosPri ? parseFloat(form.CosPri) : null,
@@ -433,12 +446,16 @@ const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
       ItmCd: form.ItmCd,
     };
 
-    if (isEditMode) {
-      Inertia.put(`/itemmaster/${form.ItmKy}`, payload);
-    } else {
-      Inertia.post('/itemmaster', payload);
-    }
-  };
+   console.log('Final payload with catkey:', payload.catkey);
+  console.log('Category Options:', categoryOptions);
+  console.log('Selected catkey:', form.catkey);
+
+  if (isEditMode) {
+    Inertia.put(`/itemmaster/${form.ItmKy}`, payload);
+  } else {
+    Inertia.post('/itemmaster', payload);
+  }
+};
 
   const inputStyle = {
     width: '100%',
@@ -461,272 +478,320 @@ const handleItemNameInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     marginRight: '5px'
   };
 
+  const rowStyle = {
+  display: 'flex',
+  gap: '20px',
+};
+
+const columnStyle = {
+  flex: 0.5,
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+};
+
  return (
-    <>
-      <Head title="New Item Entry" />
-      <div style={{ 
-        width: '950px', 
-        margin: '20px auto', 
-        padding: '10px',
-        backgroundColor: '#f0f0f0',
-        border: '1px solid #999',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '11px'
-      }}>
-        {/* Title Bar */}
-        <div style={{ 
-          backgroundColor: '#0078d4',
-          color: 'white',
-          padding: '5px 10px',
-          marginBottom: '15px',
-          fontSize: '11px',
-          fontWeight: 'bold'
-        }}>
-          📄 New Item Entry
-        </div>
-
-        {loading && (
-          <div style={{ 
-            marginBottom: 15, 
-            padding: '5px',
-            backgroundColor: '#d1ecf1',
-            border: '1px solid #bee5eb',
-            borderRadius: '3px',
-            fontSize: '11px'
-          }}>
-            Loading dropdown data...
-          </div>
-        )}
-
-        {message && (
-          <div style={{ 
-            marginBottom: 15, 
-            padding: '5px',
-            backgroundColor: isEditMode ? '#d4edda' : '#f8d7da',
-            border: `1px solid ${isEditMode ? '#c3e6cb' : '#f5c6cb'}`,
-            borderRadius: '3px',
-            fontSize: '11px'
-          }}>
-            {message}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            {/* Left Column */}
-            <div style={{ flex: '1' }}>
-              {/* Basic Info Section */}
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 10px', alignItems: 'center', marginBottom: '15px' }}>
-                <label style={labelStyle}>අයිතම් අංකය</label>
-<div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
-  {/* Single input with datalist */}
-  <input
-    type="text"
-    list="itemCodeList"
-    placeholder="අයිතම කේතය ටයිප් කරන්න හෝ තෝරන්න"
-    value={form.ItemCode}
-    onChange={handleManualItemCodeChange}
-    style={inputStyle}
-    disabled={loading}
-  />
-
-  <datalist id="itemCodeList">
-    {Array.isArray(itemCodeOptions) && itemCodeOptions.map((option) => (
-      <option key={option.id} value={option.code}>
-        {option.code} - {option.name}
-      </option>
-    ))}
-  </datalist>
-
-  <button 
-    type="button" 
-    onClick={handleSearch} 
-    disabled={searching || loading}
-    style={{
-      padding: '6px 12px',
-      backgroundColor: '#0078d4',
-      color: 'white',
-      border: 'none',
-      borderRadius: '3px',
-      cursor: 'pointer',
+  <>
+    <Head title="New Item Entry" />
+    <div style={{ 
+      width: '750px', 
+      margin: '20px auto', 
+      padding: '10px',
+      backgroundColor: '#f0f0f0',
+      border: '1px solid #999',
+      fontFamily: 'Arial, sans-serif',
       fontSize: '11px'
-    }}
-  >
-    {searching ? 'සොයමින්...' : 'සොයන්න'}
-  </button>
-</div>
+    }}>
+      {/* Title Bar */}
+      <div style={{ 
+        backgroundColor: '#0078d4',
+        color: 'white',
+        padding: '5px 10px',
+        marginBottom: '15px',
+        fontSize: '11px',
+        fontWeight: 'bold'
+      }}>
+        📄 New Item Entry
+      </div>
 
-          <label style={labelStyle}>භාණ්ඩ විස්තරය</label>
-<div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-  {/* Single Input Field with Datalist */}
-  <input
-    type="text"
-    name="ItmNm"
-    list="itemNameList"
-    placeholder="භාණ්ඩ නම ටයිප් කරන්න හෝ තෝරන්න"
-    value={form.ItmNm}
-    onChange={handleItemNameInput}
-    style={inputStyle}
-    disabled={loading}
-  />
+      {loading && (
+        <div style={{ 
+          marginBottom: 15, 
+          padding: '5px',
+          backgroundColor: '#d1ecf1',
+          border: '1px solid #bee5eb',
+          borderRadius: '3px',
+          fontSize: '11px'
+        }}>
+          Loading dropdown data...
+        </div>
+      )}
 
-  <datalist id="itemNameList">
-    {Array.isArray(itemOptions) && itemOptions.map((option, index) => (
-      <option key={option.id ?? index} value={option.name} />
-    ))}
-  </datalist>
-</div>
+      {message && (
+        <div style={{ 
+          marginBottom: 15, 
+          padding: '5px',
+          backgroundColor: isEditMode ? '#d4edda' : '#f8d7da',
+          border: `1px solid ${isEditMode ? '#c3e6cb' : '#f5c6cb'}`,
+          borderRadius: '3px',
+          fontSize: '11px'
+        }}>
+          {message}
+        </div>
+      )}
 
-
-
-                <label style={labelStyle}>English Name</label>
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: 'flex', gap: '15px' }}>
+          {/* Left Column */}
+          <div style={{ flex: '1' }}>
+            {/* Grid Section for Basic Info */}
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 10px', alignItems: 'center', marginBottom: '15px' }}>
+              {/* Item Code */}
+              <label style={labelStyle}>අයිතම් අංකය</label>
+              <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
                 <input
                   type="text"
-                  name="EnglishName"
-                  value={form.EnglishName}
-                  onChange={handleChange}
+                  list="itemCodeList"
+                  placeholder="අයිතම කේතය ටයිප් කරන්න හෝ තෝරන්න"
+                  value={form.ItemCode}
+                  onChange={handleManualItemCodeChange}
                   style={inputStyle}
+                  disabled={loading}
                 />
-
-                <label style={labelStyle}>භාණ්ඩ වර්ගය</label>
-                <select 
-                  name="catkey"
-                  value={form.catkey}
-                  onChange={handleChange}
-                  style={inputStyle}
-                  disabled={loading || categoryOptions.length === 0}
-                >
-                  <option value="">තෝරන්න</option>
-                  {Array.isArray(categoryOptions) && categoryOptions.map((option, index) => (
-                    <option key={option.id || index} value={option.id}>
-                      {option.name}
+                <datalist id="itemCodeList">
+                  {Array.isArray(itemCodeOptions) && itemCodeOptions.map((option) => (
+                    <option key={option.id} value={option.code}>
+                      {option.code} - {option.name}
                     </option>
                   ))}
-                </select>
-
-                <label style={labelStyle}> ගැණුම් මිල</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="CosPri"
-                  value={form.CosPri}
-                  onChange={handleChange}
-                  style={inputStyle}
-                />
-
-                <label style={labelStyle}>සම්මානය ගැණුම් මිල</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="NCostPrice"
-                  value={form.NCostPrice}
-                  onChange={handleChange}
-                  style={inputStyle}
-                />
-
-                <label style={labelStyle}>විකුණුම් මිල</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="SlsPri"
-                  value={form.SlsPri}
-                  onChange={handleChange}
-                  style={inputStyle}
-                />
-
-                <label style={labelStyle}>තොග මිල</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="WholePrice"
-                  value={form.WholePrice}
-                  onChange={handleChange}
-                  style={inputStyle}
-                />
-
-                <label style={labelStyle}>අමතර මිල</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="ExtraPrice"
-                  value={form.ExtraPrice}
-                  onChange={handleChange}
-                  style={inputStyle}
-                />
-
-                <label style={labelStyle}>අවම තොග වට්ටම</label>
-                <input
-                  type="number"
-                  name="ReOrdlLvl"
-                  value={form.ReOrdlLvl}
-                  onChange={handleChange}
-                  style={inputStyle}
-                />
-
-                <label style={labelStyle}>Bar Code</label>
-                <div style={{ display: 'flex', gap: '5px' }}>
-                  <input
-                    type="text"
-                    name="BarCode"
-                    value={form.BarCode}
-                    onChange={handleChange}
-                    style={{ ...inputStyle, flex: 1 }}
-                  />
-                  <button type="button" onClick={generateBarCode} style={{
-                    padding: '6px 8px',
-                    backgroundColor: '#28a745',
+                </datalist>
+                <button 
+                  type="button" 
+                  onClick={handleSearch} 
+                  disabled={searching || loading}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#0078d4',
                     color: 'white',
                     border: 'none',
                     borderRadius: '3px',
                     cursor: 'pointer',
-                    fontSize: '10px'
-                  }}>
-                    Generate BarCode
-                  </button>
+                    fontSize: '11px',
+                    width:'50%'
+                  }}
+                >
+                  {searching ? 'සොයමින්...' : 'සොයන්න'}
+                </button>
+              </div>
+              {/* Item Name */}
+              <label style={labelStyle}>භාණ්ඩ විස්තරය</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <input
+                  type="text"
+                  name="ItmNm"
+                  list="itemNameList"
+                  placeholder="භාණ්ඩ නම ටයිප් කරන්න හෝ තෝරන්න"
+                  value={form.ItmNm}
+                  onChange={handleItemNameInput}
+                  style={inputStyle}
+                  disabled={loading}
+                />
+                <datalist id="itemNameList">
+                  {Array.isArray(itemOptions) && itemOptions.map((option, index) => (
+                    <option key={option.id ?? index} value={option.name} />
+                  ))}
+                </datalist>
+              </div>
+              {/* English Name */}
+              <label style={labelStyle}>English Name</label>
+              <input
+                type="text"
+                name="EnglishName"
+                value={form.EnglishName}
+                onChange={handleChange}
+                style={inputStyle}
+              />
+              {/* Category */}
+              <label style={labelStyle}>භාණ්ඩ වර්ගය</label>
+              <select 
+                name="catkey"
+                value={form.catkey}
+                onChange={handleChange}
+                style={inputStyle}
+                disabled={loading || categoryOptions.length === 0}
+              >
+                <option value="">තෝරන්න</option>
+                {Array.isArray(categoryOptions) && categoryOptions.map((option, index) => (
+                  <option key={option.id || index} value={option.id}>  {/* value = catkey */}
+                    {option.name}  {/* Display = cname */}
+                  </option>
+                ))}
+              </select>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+
+                {/* Row 1 */}
+                <div style={rowStyle}>
+                  <div style={columnStyle}>
+                    <label htmlFor="CosPri" style={labelStyle}>ගැණුම් මිල</label>
+                    <input
+                      id="CosPri"
+                      type="number"
+                      step="0.01"
+                      name="CosPri"
+                      value={form.CosPri}
+                      onChange={handleChange}
+                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
+                    />
+                  </div>
+                  <div style={columnStyle}>
+                    <label htmlFor="NCostPrice" style={labelStyle}>සාමාන්‍ය ගැණුම් මිල</label>
+                    <input
+                      id="NCostPrice"
+                      type="number"
+                      step="0.01"
+                      name="NCostPrice"
+                      value={form.NCostPrice}
+                      onChange={handleChange}
+                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
+                    />
+                  </div>
                 </div>
 
-                <label style={labelStyle}>ඒකකය</label>
-                <select 
-                  name="UnitKy"
-                  value={form.UnitKy}
-                  onChange={handleChange}
-                  style={inputStyle}
-                  disabled={loading}
-                >
-                  <option value="">තෝරන්න</option>
-                  {Array.isArray(unitOptions) && unitOptions.map((option, index) => (
-                    <option key={option.id || index} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
+                {/* Row 2 */}
+                <div style={rowStyle}>
+                  <div style={columnStyle}>
+                    <label htmlFor="SlsPri" style={labelStyle}>විකුණුම් මිල</label>
+                    <input
+                      id="SlsPri"
+                      type="number"
+                      step="0.01"
+                      name="SlsPri"
+                      value={form.SlsPri}
+                      onChange={handleChange}
+                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
+                    />
+                  </div>
+                  <div style={columnStyle}>
+                    <label htmlFor="WholePrice" style={labelStyle}>තොග මිල</label>
+                    <input
+                      id="WholePrice"
+                      type="number"
+                      step="0.01"
+                      name="WholePrice"
+                      value={form.WholePrice}
+                      onChange={handleChange}
+                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
+                    />
+                  </div>
+                </div>
 
-                <label style={labelStyle}>කාඩ් මිල</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="CCPrice"
-                  value={form.CCPrice}
-                  onChange={handleChange}
-                  style={inputStyle}
-                />
+                {/* Row 3 */}
+                <div style={rowStyle}>
+                  <div style={columnStyle}>
+                    <label htmlFor="ExtraPrice" style={labelStyle}>අමතර මිල</label>
+                    <input
+                      id="ExtraPrice"
+                      type="number"
+                      step="0.01"
+                      name="ExtraPrice"
+                      value={form.ExtraPrice}
+                      onChange={handleChange}
+                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
+                    />
+                  </div>
+                  <div style={columnStyle}>
+                    <label htmlFor="CCPrice" style={labelStyle}>කාඩ් මිල</label>
+                    <input
+                      id="CCPrice"
+                      type="number"
+                      step="0.01"
+                      name="CCPrice"
+                      value={form.CCPrice}
+                      onChange={handleChange}
+                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
+                    />
+                  </div>
+                </div>
 
-                <label style={labelStyle}>සැපයුම්කරු</label>
-                <select 
-                  name="SupKey"
-                  value={form.SupKey}
-                  onChange={handleChange}
-                  style={inputStyle}
-                  disabled={loading}
-                >
-                  <option value="">තෝරන්න</option>
-                  {Array.isArray(supplierOptions) && supplierOptions.map((option, index) => (
-                    <option key={option.id || index} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
+              <div style={rowStyle}>
+                <div style={columnStyle}>
+                  <label htmlFor="ReOrdlLvl" style={labelStyle}>අවම තොග වට්ටම</label>
+                  <input
+                    id="ReOrdlLvl"
+                    type="number"
+                    name="ReOrdlLvl"
+                    value={form.ReOrdlLvl}
+                    onChange={handleChange}
+                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
+                  />
+                </div>
+
+                {/* Column 2: ඒකකය */}
+                <div style={columnStyle}>
+                  <label htmlFor="UnitKy" style={labelStyle}>ඒකකය</label>
+                  <select
+                    id="UnitKy"
+                    name="UnitKy"
+                    value={form.UnitKy}
+                    onChange={handleChange}
+                    style={{ ...inputStyle, width:'100px',marginLeft:'20px'}}
+                    disabled={loading}
+                  >
+                    <option value="">තෝරන්න</option>
+                    {Array.isArray(unitOptions) && unitOptions.map((option, index) => (
+                      <option key={option.id || index} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
+              </div>
+
+
+            {/* Bar Code */}
+              <div style={{ display: 'flex', gap: '20px', padding: '6px 2px'}}>
+              <label style={labelStyle}>Bar Code</label>
+
+                <input
+                  type="text"
+                  name="BarCode"
+                  value={form.BarCode}
+                  onChange={handleChange}
+                  style={{ ...inputStyle, width:'150px'}}
+                />
+                <button type="button" onClick={generateBarCode} style={{
+                  padding: '3px 5px',
+                  backgroundColor: '#aeb1ae',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: '10px'
+                }}>
+                  Generate BarCode
+                </button>
+              </div>
+            {/* Supplier */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '25px', marginBottom: '15px' }}>
+
+              <label style={labelStyle}>සැපයුම්කරු</label>
+              <select 
+                name="SupKey"
+                value={form.SupKey}
+                onChange={handleChange}
+                style={inputStyle}
+                disabled={loading}
+              >
+                <option value="">තෝරන්න</option>
+                {Array.isArray(supplierOptions) && supplierOptions.map((option, index) => (
+                  <option key={option.id || index} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+    </div>
 
               {/* Retail Discounts */}
               <div style={{ marginBottom: '15px' }}>
